@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property Exchange</title>
+<meta name="description" content="Property Exchange — پورے پاکستان میں جائیداد، گاڑی اور کاروبار کا تبادلہ، فروخت اور کرایہ">
+<!--
+======================================================================
+Property Exchange — single-file site for GitHub Pages
+======================================================================
+Upload ONLY this file (index.html) to a GitHub repository, then enable
+Pages (Settings → Pages → Branch: main). No zip, no extra files needed.
+
+CONFIG is near the top of the <script> block:
+  ADMIN_USER / ADMIN_PASSWORD  — owner login (default: admin / teamwork)
+  OWNER_EMAIL                  — teamworkcomplex@gmail.com (create the Web3Forms key with this same email)
+  WEB3FORMS_ACCESS_KEY         — free key from https://web3forms.com
+  DEFAULT_WHATSAPP             — fallback WhatsApp, country code, no +
+
+Web3Forms setup:
+  1. Open https://web3forms.com and create a free access key with your email.
+  2. Paste the key into WEB3FORMS_ACCESS_KEY below.
+  3. Create the free Web3Forms key at https://web3forms.com using this same email: teamworkcomplex@gmail.com
+  If the key is left as the placeholder YOUR_WEB3FORMS_ACCESS_KEY, emails
+  are skipped on purpose (no failed network calls). Listings, leads and
+  accounts still save in the browser (localStorage).
+
+Security note: this is a static site with no server. Login is a basic
+client-side check and can be inspected in the file. Visitor passwords are
+stored only as SHA-256 hashes (never plaintext). Passwords and hashes are
+NEVER sent in emails or saved in leads.
+
+Location: optional only. A user must click "میری پراپرٹی کی لوکیشن لیں"
+or "اپنی لوکیشن شیئر کریں". There is no automatic geolocation and no
+location on login or signup.
+
+Theme: purple. Language: Urdu (RTL). No external libraries.
+======================================================================
+-->
+<style>
+:root{
+  --p950:#2e1065;--p900:#4c1d95;--p800:#5b21b6;--p700:#6d28d9;--p600:#7c3aed;
+  --p500:#8b5cf6;--p400:#a78bfa;--p200:#ddd6fe;--p100:#ede9fe;--p50:#faf5ff;
+  --ink:#1e1233;--muted:#5b4a73;--line:#e9d5ff;--card:#fff;--cream:#fdf8ff;
+  --ok:#047857;--okbg:#ecfdf5;--danger:#be123c;--dangerbg:#fff1f2;
+  --shadow:0 10px 30px rgba(76,29,149,.12);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Noto Nastaliq Urdu","Noto Naskh Arabic","Segoe UI",Tahoma,sans-serif;
+  background:linear-gradient(180deg,var(--p50),var(--cream) 28%,#fff);
+  color:var(--ink);min-height:100vh;line-height:1.7;
+}
+a{color:var(--p700);text-decoration:none}
+button,input,select,textarea{font:inherit}
+img{max-width:100%;display:block}
+.wrap{width:min(1120px,calc(100% - 32px));margin-inline:auto}
+.skip{position:absolute;right:-999px}
+.skip:focus{right:16px;top:8px;background:#fff;padding:8px 12px;z-index:80;border-radius:8px}
+
+/* Header */
+.header{position:sticky;top:0;z-index:40;background:rgba(46,16,101,.96);color:#fff;
+  backdrop-filter:blur(8px);box-shadow:0 2px 16px rgba(46,16,101,.25)}
+.header-inner{display:flex;align-items:center;gap:12px;padding:10px 0;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;letter-spacing:.02em}
+.logo-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--p400),var(--p700));
+  display:grid;place-items:center;font-size:18px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-right:auto}
+.nav a,.nav button.linkish{color:#efe7ff;background:none;border:0;padding:8px 12px;border-radius:999px;cursor:pointer}
+.nav a:hover,.nav button.linkish:hover,.nav a.active{background:rgba(255,255,255,.12);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;
+  border-radius:999px;padding:10px 18px;font-weight:700;transition:.15s transform,.15s background}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:linear-gradient(135deg,#c4b5fd,var(--p400));color:var(--p950);box-shadow:0 4px 14px rgba(167,139,250,.35)}
+.btn-primary:hover{background:#fff;color:var(--p800)}
+.btn-solid{background:var(--p700);color:#fff}
+.btn-solid:hover{background:var(--p800)}
+.btn-ghost{background:transparent;color:var(--p800);border:1px solid var(--p200)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-lg{padding:14px 26px;font-size:1.05rem}
+.header .btn-primary{box-shadow:0 0 0 3px rgba(196,181,253,.3)}
+
+/* Hero */
+.hero{background:radial-gradient(circle at 20% 20%,rgba(167,139,250,.35),transparent 40%),
+  linear-gradient(135deg,var(--p950),var(--p800) 60%,#7e22ce);color:#fff;padding:48px 0 56px;margin-bottom:8px}
+.hero h1{margin:0 0 8px;font-size:clamp(1.8rem,4vw,2.8rem)}
+.hero p{margin:0 0 22px;color:#ede9fe;max-width:40rem}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Pages */
+.page{display:none;padding:24px 0 64px}
+.page.active{display:block}
+.page-title{margin:0 0 6px;font-size:1.6rem;color:var(--p900)}
+.lede{color:var(--muted);margin:0 0 20px}
+
+/* Filters + cards */
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:18px}
+.filters .search{grid-column:1/-1}
+label.field{display:flex;flex-direction:column;gap:4px;font-size:.92rem;color:var(--p900);font-weight:600}
+input,select,textarea{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--p400);border-color:var(--p500)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;cursor:pointer;transition:transform .15s}
+.card:hover{transform:translateY(-3px)}
+.card-img{height:160px;background:var(--p100) center/cover no-repeat;position:relative}
+.badge{position:absolute;top:10px;right:10px;background:var(--p800);color:#fff;border-radius:999px;padding:3px 10px;font-size:.8rem}
+.badge-want{left:10px;right:auto;background:#6d28d9}
+.card-body{padding:12px 14px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.card h3{margin:0;font-size:1.05rem}
+.meta{color:var(--muted);font-size:.9rem}
+.price{color:var(--p800);font-weight:800}
+.want-line{background:var(--p50);border-radius:10px;padding:6px 8px;font-size:.86rem;color:var(--p900)}
+.card-actions{display:flex;gap:8px;margin-top:auto;flex-wrap:wrap}
+.card-actions .btn{padding:7px 12px;font-size:.85rem}
+.empty{text-align:center;padding:40px 16px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:var(--radius)}
+
+/* Forms */
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.form-grid .full{grid-column:1/-1}
+.section{border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 16px;background:var(--p50)}
+.section.want{background:#f5f3ff}
+.section h3{margin:0 0 12px;color:var(--p900)}
+.check-grid{display:flex;flex-wrap:wrap;gap:8px}
+.check-grid label{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:4px 10px;font-weight:500}
+.help{font-size:.85rem;color:var(--muted);font-weight:500}
+.error{color:var(--danger);font-size:.9rem;min-height:1.2em}
+.notice{background:var(--p100);border-radius:10px;padding:8px 12px;font-size:.9rem;color:var(--p900)}
+.loc-box{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
+.loc-ok{background:var(--okbg);color:var(--ok);border-radius:999px;padding:4px 10px;font-weight:700}
+.preview{width:100%;max-height:200px;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:none}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tabs button{flex:1;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px;cursor:pointer;font-weight:700;color:var(--p800)}
+.tabs button.active{background:var(--p700);color:#fff;border-color:var(--p700)}
+
+/* Detail / compare / tables */
+.detail{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+.detail-img{width:100%;height:320px;object-fit:cover;border-radius:var(--radius);background:var(--p100)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.kv div{background:var(--p50);border-radius:10px;padding:8px 10px}
+.kv b{display:block;color:var(--muted);font-weight:600;font-size:.8rem}
+.compare-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden}
+.compare-table th,.compare-table td{border:1px solid var(--line);padding:8px 10px;text-align:right;vertical-align:top}
+.compare-table th{background:var(--p800);color:#fff}
+.table{width:100%;border-collapse:collapse;background:#fff}
+.table th,.table td{border-bottom:1px solid var(--line);padding:8px;text-align:right}
+.table th{background:var(--p50);color:var(--p900)}
+.auth-box{max-width:460px;margin:20px auto}
+
+/* Toast / footer */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--p950);color:#fff;
+  padding:10px 16px;border-radius:999px;z-index:70;display:none;box-shadow:var(--shadow)}
+.footer{background:var(--p950);color:#ddd6fe;padding:22px 0;text-align:center;font-size:.9rem}
+.footer strong{color:#fff}
+
+@media (max-width:800px){
+  .filters,.form-grid,.detail,.kv{grid-template-columns:1fr}
+  .nav{width:100%;order:3}
+  .hero{padding:28px 0 36px}
+  .detail-img{height:200px}
+}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">مواد پر جائیں</a>
+<header class="header">
+  <div class="wrap header-inner">
+    <a class="logo" href="#home" data-nav="home">
+      <span class="logo-mark">پ</span>
+      <span>Property Exchange</span>
+    </a>
+    <nav class="nav" id="mainNav">
+      <a href="#home" data-nav="home">ہوم</a>
+      <a href="#compare" data-nav="compare">موازنہ</a>
+      <a href="#my-listings" data-nav="my-listings" id="navMy" class="hidden">میری لسٹنگز</a>
+      <a href="#leads" data-nav="leads" id="navLeads" class="hidden">لیڈز</a>
+      <a href="#login" data-nav="login" id="navLogin">لاگ ان</a>
+      <button type="button" class="linkish hidden" id="navLogout">لاگ آؤٹ</button>
+    </nav>
+    <a class="btn btn-primary" href="#add" data-nav="add" id="headerAddBtn">پراپرٹی شامل کریں</a>
+  </div>
+</header>
+<main id="main">
+
+<!-- HOME -->
+<section class="page active" id="page-home">
+  <div class="hero">
+    <div class="wrap">
+      <h1>Property Exchange</h1>
+      <p>پورے پاکستان میں جائیداد، گاڑی اور کاروبار کا تبادلہ، فروخت یا کرایہ۔ جو آپ کے پاس ہے اسے اس سے بدلیں جو آپ چاہتے ہیں۔</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#add" id="heroAddBtn">پراپرٹی شامل کریں</a>
+        <a class="btn btn-ghost" href="#home" style="color:#fff;border-color:rgba(255,255,255,.35)" id="heroBrowse">لسٹنگز دیکھیں</a>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <form class="filters" id="filterForm">
+      <label class="field search">تلاش (میرے پاس ہے / مجھے چاہیے)
+        <input type="search" id="filterQ" placeholder="عنوان، شہر، تفصیل، چاہت…">
+      </label>
+      <label class="field">شہر
+        <select id="filterCity"><option value="">تمام شہر</option></select>
+      </label>
+      <label class="field">کیٹیگری
+        <select id="filterCat"><option value="">تمام کیٹیگریز</option></select>
+      </label>
+      <label class="field">مقصد
+        <select id="filterPurpose"><option value="">تمام</option></select>
+      </label>
+      <div style="align-self:end">
+        <button type="button" class="btn btn-ghost" id="filterReset">فلٹر صاف کریں</button>
+      </div>
+    </form>
+    <p class="help" id="resultCount"></p>
+    <div class="grid" id="listingGrid"></div>
+    <div class="empty hidden" id="listingEmpty">کوئی لسٹنگ نہیں ملی۔</div>
+  </div>
+</section>
+
+<!-- ADD / EDIT -->
+<section class="page" id="page-add">
+  <div class="wrap">
+    <h2 class="page-title" id="addTitle">پراپرٹی شامل کریں</h2>
+    <p class="lede">فارم آسان ہے — پہلے بتائیں آپ کے پاس کیا ہے، پھر اگر تبادلہ ہو تو کیا چاہیے۔</p>
+    <form class="panel" id="addForm" novalidate>
+      <input type="hidden" id="editId">
+      <div class="section">
+        <h3>میرے پاس ہے</h3>
+        <div class="form-grid">
+          <label class="field full">عنوان
+            <input id="fTitle" required placeholder="مثلاً: ایف-17 میں 2 بیڈ اپارٹمنٹ">
+          </label>
+          <label class="field">کیٹیگری
+            <select id="fCategory" required></select>
+          </label>
+          <label class="field">مقصد
+            <select id="fPurpose" required></select>
+          </label>
+          <label class="field">شہر
+            <select id="fCity" required></select>
+          </label>
+          <label class="field hidden" id="wrapCityOther">شہر / علاقہ لکھیں
+            <input id="fCityOther" placeholder="شہر یا علاقے کا نام">
+          </label>
+          <label class="field">علاقہ / مقام
+            <input id="fArea" placeholder="مثلاً ہل ویو، ڈی-17، گلبرگ">
+          </label>
+          <label class="field">قیمت (روپے میں، یا مانگ)
+            <input id="fPrice" inputmode="decimal" placeholder="مثلاً 90 لاکھ">
+          </label>
+          <label class="field" id="wrapSize">رقبہ / سائز
+            <input id="fSize" placeholder="مثلاً 10 مرلہ، 1200 مربع فٹ">
+          </label>
+          <label class="field js-prop">بیڈ روم
+            <input id="fBeds" type="number" min="0" placeholder="0">
+          </label>
+          <label class="field js-prop">باتھ روم
+            <input id="fBaths" type="number" min="0" placeholder="0">
+          </label>
+          <label class="field js-prop">فرنشنگ
+            <select id="fFurnish"></select>
+          </label>
+          <label class="field js-vehicle hidden">کمپنی / میک
+            <input id="fMake" placeholder="مثلاً سوزوکی، ہونڈا">
+          </label>
+          <label class="field js-vehicle hidden">ماڈل
+            <input id="fModel" placeholder="مثلاً سوئفٹ، سٹی">
+          </label>
+          <label class="field js-vehicle hidden">سال
+            <input id="fYear" type="number" min="1980" max="2030" placeholder="2020">
+          </label>
+          <label class="field js-vehicle hidden">میلیج (کلومیٹر)
+            <input id="fMileage" inputmode="numeric" placeholder="مثلاً 45000">
+          </label>
+          <div class="field full js-prop">
+            <span>سہولیات</span>
+            <div class="check-grid" id="fAmenities"></div>
+          </div>
+          <label class="field">تصویر کا لنک (URL)
+            <input id="fPhotoUrl" type="url" placeholder="https://…">
+          </label>
+          <label class="field">یا تصویر اپلوڈ کریں
+            <input id="fPhotoFile" type="file" accept="image/*">
+          </label>
+          <div class="full"><img id="fPhotoPreview" class="preview" alt="پیش منظر"></div>
+          <label class="field">اس لسٹنگ کا WhatsApp نمبر
+            <input id="fWhatsapp" inputmode="tel" placeholder="03xxxxxxxxx یا 923xxxxxxxxx">
+          </label>
+          <label class="field full">تفصیل
+            <textarea id="fDesc" rows="3" placeholder="مزید معلومات"></textarea>
+          </label>
+          <div class="field full">
+            <span>لوکیشن (اختیاری)</span>
+            <p class="help">صرف اسی بٹن سے لوکیشن لی جاتی ہے۔ بغیر اس کے بھی فارم جمع ہو جائے گا۔</p>
+            <div class="loc-box">
+              <button type="button" class="btn btn-ghost" id="btnAddLocation">میری پراپرٹی کی لوکیشن لیں</button>
+              <span class="loc-ok hidden" id="addLocOk">لوکیشن شامل ہو گئی</span>
+              <button type="button" class="btn btn-ghost hidden" id="btnAddLocRemove">ہٹائیں</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section want">
+        <h3>مجھے چاہیے</h3>
+        <p class="help">تبادلہ کے لیے یہ حصہ اہم ہے۔ فروخت یا کرایہ پر بھی بھر سکتے ہیں۔</p>
+        <div class="form-grid">
+          <label class="field">مطلوبہ کیٹیگری
+            <select id="wCategory"></select>
+          </label>
+          <label class="field">مطلوبہ شہر
+            <select id="wCity"></select>
+          </label>
+          <label class="field hidden" id="wrapWantCityOther">مطلوبہ شہر لکھیں
+            <input id="wCityOther" placeholder="شہر کا نام">
+          </label>
+          <label class="field">بجٹ / فرق کی رقم
+            <input id="wBudget" placeholder="مثلاً 20 لاکھ فرق">
+          </label>
+          <label class="field full">نوٹس
+            <textarea id="wNotes" rows="2" placeholder="کیا چاہیے، کس شرط پر تبادلہ ہوگا"></textarea>
+          </label>
+        </div>
+      </div>
+      <p class="error" id="addError"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button type="submit" class="btn btn-solid btn-lg" id="addSubmit">لسٹنگ محفوظ کریں</button>
+        <button type="button" class="btn btn-ghost" id="addCancel">منسوخ</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section class="page" id="page-compare">
+  <div class="wrap">
+    <h2 class="page-title">موازنہ</h2>
+    <p class="lede">ہوم پر 2 یا 3 لسٹنگز منتخب کریں، پھر یہاں ساتھ ساتھ دیکھیں۔</p>
+    <div id="compareBox"></div>
+  </div>
+</section>
+
+<!-- MY LISTINGS -->
+<section class="page" id="page-my-listings">
+  <div class="wrap">
+    <h2 class="page-title">میری لسٹنگز</h2>
+    <p class="lede" id="myLede"></p>
+    <div style="margin-bottom:12px" id="exportWrap" class="hidden">
+      <button type="button" class="btn btn-ghost" id="btnExport">لسٹنگز ایکسپورٹ کریں</button>
+    </div>
+    <div class="grid" id="myGrid"></div>
+    <div class="empty hidden" id="myEmpty">ابھی کوئی لسٹنگ نہیں۔</div>
+  </div>
+</section>
+
+<!-- LEADS (admin only) -->
+<section class="page" id="page-leads">
+  <div class="wrap">
+    <h2 class="page-title">لیڈز</h2>
+    <p class="lede">وزٹرز کی پوچھ گچھ یہاں محفوظ ہوتی ہے۔ یہ صفحہ صرف ایڈمن دیکھ سکتا ہے۔</p>
+    <div style="overflow:auto">
+      <table class="table" id="leadsTable"></table>
+    </div>
+    <div class="empty hidden" id="leadsEmpty">ابھی کوئی لیڈ نہیں۔</div>
+  </div>
+</section>
+
+<!-- DETAIL -->
+<section class="page" id="page-detail">
+  <div class="wrap" id="detailBox"></div>
+</section>
+
+<!-- LOGIN / SIGNUP -->
+<section class="page" id="page-login">
+  <div class="wrap">
+    <div class="panel auth-box">
+      <h2 class="page-title">اکاؤنٹ</h2>
+      <div class="tabs">
+        <button type="button" class="active" id="tabLogin" data-tab="login">لاگ ان</button>
+        <button type="button" id="tabSignup" data-tab="signup">سائن اپ</button>
+      </div>
+      <form id="loginForm" novalidate>
+        <label class="field">یوزرنیم / ای میل
+          <input id="loginUser" autocomplete="username" required>
+        </label>
+        <label class="field" style="margin-top:10px">پاس ورڈ
+          <input id="loginPass" type="password" autocomplete="current-password" required>
+        </label>
+        <p class="error" id="loginError"></p>
+        <button type="submit" class="btn btn-solid btn-lg" style="width:100%;margin-top:8px">لاگ ان</button>
+      </form>
+      <form id="signupForm" class="hidden" novalidate>
+        <label class="field">نام
+          <input id="suName" autocomplete="name" required>
+        </label>
+        <label class="field" style="margin-top:10px">ای میل
+          <input id="suEmail" type="email" autocomplete="email" required>
+        </label>
+        <label class="field" style="margin-top:10px">فون (اختیاری)
+          <input id="suPhone" inputmode="tel" autocomplete="tel">
+        </label>
+        <label class="field" style="margin-top:10px">پاس ورڈ
+          <input id="suPass" type="password" autocomplete="new-password" required minlength="6">
+        </label>
+        <p class="notice" style="margin-top:12px">یہ تفصیلات سائٹ کے مالک کے ساتھ شیئر کی جاتی ہیں۔ پاس ورڈ بھیجا نہیں جاتا۔</p>
+        <p class="error" id="signupError"></p>
+        <button type="submit" class="btn btn-solid btn-lg" style="width:100%;margin-top:8px">سائن اپ</button>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="footer">
+  <div class="wrap">
+    <strong>Property Exchange</strong> — Teamwork Complex، اسلام آباد<br>
+    پورے پاکستان میں تبادلہ، فروخت اور کرایہ
+  </div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+<script>
+
+/* ===== CONFIG — change these before uploading ===== */
+const CONFIG = {
+  siteName: "Property Exchange",
+  ADMIN_USER: "admin",
+  ADMIN_PASSWORD: "teamwork",
+  /* Web3Forms کی کلید اسی ای میل سے بنائیں / Create the Web3Forms key at https://web3forms.com with this same email: teamworkcomplex@gmail.com */
+  OWNER_EMAIL: "teamworkcomplex@gmail.com",
+  /* Free key from https://web3forms.com — leave the placeholder to skip sending */
+  WEB3FORMS_ACCESS_KEY: "0cc6aa6e-b364-48b7-8aef-5593b450829e",
+  DEFAULT_WHATSAPP: "923000000000",
+  MAX_COMPARE: 3
+};
+
+const KEYS = {
+  listings: "pe_listings_v1",
+  leads: "pe_leads_v1",
+  users: "pe_users_v1",
+  session: "pe_session_v1",
+  compare: "pe_compare_v1"
+};
+
+const CATEGORIES = [
+  { id: "house", label: "گھر", group: "property" },
+  { id: "apartment", label: "اپارٹمنٹ", group: "property" },
+  { id: "plot", label: "پلاٹ (رہائشی)", group: "land" },
+  { id: "cplot", label: "کمرشل پلاٹ", group: "land" },
+  { id: "shop", label: "دکان/کمرشل", group: "commercial" },
+  { id: "office", label: "دفتر", group: "commercial" },
+  { id: "factory", label: "فیکٹری/کارخانہ", group: "industrial" },
+  { id: "warehouse", label: "گودام", group: "industrial" },
+  { id: "agri", label: "زرعی زمین", group: "land" },
+  { id: "farmhouse", label: "فارم ہاؤس", group: "property" },
+  { id: "car", label: "گاڑی", group: "vehicle" },
+  { id: "bike", label: "موٹر سائیکل", group: "vehicle" },
+  { id: "truck", label: "ٹرک/کمرشل گاڑی", group: "vehicle" },
+  { id: "other", label: "دیگر", group: "other" }
+];
+
+const CITIES = [
+  "اسلام آباد","راولپنڈی","لاہور","کراچی","پشاور","کوئٹہ","فیصل آباد","ملتان",
+  "گوجرانوالہ","سیالکوٹ","حیدرآباد","سرگودھا","بہاولپور","ایبٹ آباد","مردان",
+  "سکھر","گوادر","مظفرآباد","گلگت","میرپور","مری","چکوال","واہ","ٹیکسلا",
+  "گجرات","شیخوپورہ","رحیم یار خان","ڈیرہ غازی خان","لاڑکانہ","سوات","مانسہرہ",
+  "سکردو","کوٹلی","دیگر"
+];
+
+const PURPOSES = [
+  { id: "sale", label: "فروخت" },
+  { id: "rent", label: "کرایہ" },
+  { id: "exchange", label: "تبادلہ" }
+];
+
+const FURNISHING = [
+  { id: "", label: "منتخب کریں" },
+  { id: "unfurnished", label: "غیر مفروش" },
+  { id: "semi", label: "نیم مفروش" },
+  { id: "furnished", label: "مکمل مفروش" }
+];
+
+const AMENITIES = ["پارکنگ","لفٹ","جنریٹر","گیس","بجلی","سیکیورٹی","پارک","کارنر","بالکونی","باؤنڈری وال"];
+
+const PLACEHOLDER_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">' +
+  '<rect fill="#ede9fe" width="800" height="500"/>' +
+  '<rect fill="#c4b5fd" x="250" y="200" width="300" height="180" rx="8"/>' +
+  '<polygon fill="#7c3aed" points="230,200 400,110 570,200"/>' +
+  '<text x="400" y="440" text-anchor="middle" fill="#5b21b6" font-size="28" font-family="Tahoma">Property Exchange</text>' +
+  '</svg>'
+);
+
+/* ===== state ===== */
+let addLocation = null;
+let leadLocation = null;
+let lastNotify = null;
+let afterLoginHash = "home";
+let photoDataUrl = "";
+
+function $(id){ return document.getElementById(id); }
+function load(key, fallback){
+  try { const v = JSON.parse(localStorage.getItem(key) || "null"); return v == null ? fallback : v; }
+  catch(e){ return fallback; }
+}
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+function catById(id){ return CATEGORIES.find(c => c.id === id); }
+function catLabel(id){ return (catById(id) || {}).label || id || "—"; }
+function purposeLabel(id){ return (PURPOSES.find(p => p.id === id) || {}).label || id || "—"; }
+function furnishLabel(id){ return (FURNISHING.find(f => f.id === id) || {}).label || "—"; }
+function isVehicle(id){ return (catById(id) || {}).group === "vehicle"; }
+function isPropFields(id){
+  const g = (catById(id) || {}).group;
+  return g === "property" || g === "commercial" || id === "farmhouse";
+}
+
+function cityValue(selectId, otherId){
+  const v = $(selectId).value;
+  if (v === "دیگر") return ($(otherId).value || "").trim() || "دیگر";
+  return v;
+}
+function displayCity(item){
+  if (!item) return "";
+  if (item.city === "دیگر" || item.cityOther) return item.cityOther || item.city;
+  return item.city;
+}
+
+/* ===== crypto / users ===== */
+async function sha256Hex(text){
+  if (!crypto || !crypto.subtle) {
+    throw new Error("secure-context");
+  }
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+function getUsers(){ return load(KEYS.users, []); }
+function saveUsers(list){ save(KEYS.users, list); }
+function getSession(){ return load(KEYS.session, null); }
+function setSession(s){ if (s) save(KEYS.session, s); else localStorage.removeItem(KEYS.session); }
+function isLoggedIn(){ return !!getSession(); }
+function isAdmin(){ const s = getSession(); return !!(s && s.role === "admin"); }
+
+/* ===== email ===== */
+function isPlaceholderKey(key){
+  if (!key) return true;
+  const k = String(key).trim().toLowerCase();
+  return !k || k.includes("your_") || k.includes("placeholder") || k.includes("access_key") || k.startsWith("paste") || k === "xxxxx";
+}
+
+function sanitizeEmailPayload(data){
+  const blocked = /password|passwd|passhash|hash|secret|pin|credential/i;
+  const out = {};
+  Object.keys(data || {}).forEach(k => {
+    if (blocked.test(k)) return;
+    const v = data[k];
+    if (v && typeof v === "object") out[k] = sanitizeEmailPayload(v);
+    else out[k] = v;
+  });
+  return out;
+}
+
+function karachiTime(d){
+  try {
+    return new Date(d || Date.now()).toLocaleString("en-PK", { timeZone: "Asia/Karachi", hour12: true }) + " (Asia/Karachi)";
+  } catch(e){ return new Date().toISOString(); }
+}
+
+async function notifyOwner(payload){
+  const clean = sanitizeEmailPayload(payload || {});
+  lastNotify = { skipped: false, payload: clean, at: Date.now() };
+  if (isPlaceholderKey(CONFIG.WEB3FORMS_ACCESS_KEY)) {
+    lastNotify.skipped = true;
+    console.info("Web3Forms skipped (placeholder key)");
+    return lastNotify;
+  }
+  try {
+    const body = {
+      access_key: CONFIG.WEB3FORMS_ACCESS_KEY,
+      subject: clean.subject || ("Property Exchange: " + (clean.event || "notice")),
+      from_name: "Property Exchange",
+      email: CONFIG.OWNER_EMAIL,
+      to: CONFIG.OWNER_EMAIL,
+      message: clean.message || JSON.stringify(clean, null, 2)
+    };
+    Object.keys(clean).forEach(k => {
+      if (body[k] == null && (typeof clean[k] === "string" || typeof clean[k] === "number")) body[k] = clean[k];
+    });
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(body)
+    });
+    lastNotify.ok = res.ok;
+  } catch (err) {
+    lastNotify.error = String(err);
+  }
+  return lastNotify;
+}
+
+function mapsLink(loc){
+  if (!loc || loc.lat == null || loc.lng == null) return "";
+  return "https://www.google.com/maps?q=" + loc.lat + "," + loc.lng;
+}
+
+/* ===== listings / leads ===== */
+function seedListings(){
+  return [
+    { id:"seed-1", title:"ایف-17 میں 2 بیڈ اپارٹمنٹ", category:"apartment", purpose:"sale",
+      city:"اسلام آباد", area:"F-17", price:"127 لاکھ", size:"850 مربع فٹ", beds:"2", baths:"2",
+      furnish:"semi", amenities:["پارکنگ","لفٹ","جنریٹر"], whatsapp: CONFIG.DEFAULT_WHATSAPP,
+      desc:"تیسری منزل، فیملی کے لیے مناسب۔", wantCategory:"house", wantCity:"راولپنڈی",
+      wantBudget:" فرق ادا کرنے کو تیار", wantNotes:"چھوٹا گھر یا پلاٹ بھی دیکھا جا سکتا ہے۔",
+      ownerId:"admin", createdAt: Date.now()-86400000*3 },
+    { id:"seed-2", title:"ہل ویو ہاؤسنگ میں 40x80 پلاٹ", category:"plot", purpose:"exchange",
+      city:"اسلام آباد", area:"Hill View, Block A", price:"100 لاکھ", size:"40x80",
+      amenities:["کارنر"], whatsapp: CONFIG.DEFAULT_WHATSAPP,
+      desc:"بلاک A میں رہائشی پلاٹ۔", wantCategory:"apartment", wantCity:"اسلام آباد",
+      wantBudget:" برابر یا قریبی مالیت", wantNotes:"2 بیڈ اپارٹمنٹ درکار ہے۔",
+      ownerId:"admin", createdAt: Date.now()-86400000*2 },
+    { id:"seed-3", title:"H-13 میں 4 مرلہ ڈبل یونٹ گھر", category:"house", purpose:"sale",
+      city:"اسلام آباد", area:"H-13", price:"120 لاکھ", size:"4 مرلہ", beds:"3", baths:"3",
+      furnish:"unfurnished", amenities:["پارکنگ","باؤنڈری وال","گیس","بجلی"],
+      whatsapp: CONFIG.DEFAULT_WHATSAPP, desc:"رہائشی علاقہ، فوری فروخت۔",
+      wantCategory:"", wantCity:"", wantBudget:"", wantNotes:"",
+      ownerId:"admin", createdAt: Date.now()-86400000 },
+    { id:"seed-4", title:"چکوال میں 5 مرلہ پلاٹ", category:"plot", purpose:"sale",
+      city:"چکوال", area:"ایگزیکٹو ٹاؤن", price:"25 لاکھ", size:"5 مرلہ",
+      amenities:[], whatsapp: CONFIG.DEFAULT_WHATSAPP, desc:"شہر کے قریب پلاٹ۔",
+      wantCategory:"shop", wantCity:"چکوال", wantBudget:"", wantNotes:"اگر دکان کے عوض بنے تو گفتگو ہو سکتی ہے۔",
+      ownerId:"admin", createdAt: Date.now()-3600000*20 },
+    { id:"seed-5", title:"سوزوکی سوئفٹ 2021", category:"car", purpose:"exchange",
+      city:"لاہور", area:"جوہر ٹاؤن", price:"42 لاکھ", make:"سوزوکی", model:"سوئفٹ", year:"2021",
+      mileage:"35000", whatsapp: CONFIG.DEFAULT_WHATSAPP, desc:"اچھی حالت، ایک مالک۔",
+      wantCategory:"car", wantCity:"لاہور", wantBudget:"10 لاکھ فرق تک", wantNotes:"بڑی فیملی کار چاہیے۔",
+      ownerId:"admin", createdAt: Date.now()-3600000*8 },
+    { id:"seed-6", title:"ٹاپ سٹی گراؤنڈ فلور شاپ 280 مربع فٹ", category:"shop", purpose:"rent",
+      city:"اسلام آباد", area:"Top City", price:"کرایہ مانگ پر", size:"280 مربع فٹ",
+      furnish:"unfurnished", amenities:["پارکنگ","سیکیورٹی"], whatsapp: CONFIG.DEFAULT_WHATSAPP,
+      desc:"کمرشل مقام، کرایہ پر دستیاب۔", wantCategory:"", wantCity:"", wantNotes:"",
+      ownerId:"admin", createdAt: Date.now()-3600000*2 }
+  ];
+}
+
+function getListings(){
+  let list = load(KEYS.listings, null);
+  if (!list) { list = seedListings(); save(KEYS.listings, list); }
+  return list;
+}
+function saveListings(list){ save(KEYS.listings, list); }
+function getLeads(){ return load(KEYS.leads, []); }
+function saveLeads(list){ save(KEYS.leads, list); }
+function getCompare(){ return load(KEYS.compare, []); }
+function saveCompare(ids){ save(KEYS.compare, ids.slice(0, CONFIG.MAX_COMPARE)); }
+
+function findListing(id){ return getListings().find(x => x.id === id); }
+
+function wantLine(item){
+  if (!item) return "";
+  const bits = [];
+  if (item.wantCategory) bits.push(catLabel(item.wantCategory));
+  if (item.wantCity) bits.push(item.wantCity === "دیگر" ? (item.wantCityOther || "دیگر") : item.wantCity);
+  if (item.wantBudget) bits.push(item.wantBudget);
+  if (!bits.length && !item.wantNotes) return "";
+  return "چاہیے: " + (bits.join("، ") || "") + (item.wantNotes ? " — " + item.wantNotes : "");
+}
+
+function photoOf(item){ return item && (item.photo || item.photoUrl) ? (item.photo || item.photoUrl) : PLACEHOLDER_IMG; }
+
+function waLink(num, text){
+  let n = String(num || CONFIG.DEFAULT_WHATSAPP).replace(/[^\d]/g,"");
+  if (n.startsWith("0")) n = "92" + n.slice(1);
+  if (!n) n = CONFIG.DEFAULT_WHATSAPP;
+  return "https://wa.me/" + n + (text ? ("?text=" + encodeURIComponent(text)) : "");
+}
+
+function toast(msg){
+  const el = $("toast");
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.style.display = "none"; }, 2800);
+}
+
+function fillSelect(el, items, withBlank, blankLabel){
+  const opts = [];
+  if (withBlank) opts.push('<option value="">' + (blankLabel || "منتخب کریں") + "</option>");
+  items.forEach(it => {
+    if (typeof it === "string") opts.push('<option value="'+it+'">'+it+"</option>");
+    else opts.push('<option value="'+it.id+'">'+it.label+"</option>");
+  });
+  el.innerHTML = opts.join("");
+}
+
+function fillLookups(){
+  fillSelect($("filterCity"), CITIES, true, "تمام شہر");
+  fillSelect($("filterCat"), CATEGORIES, true, "تمام کیٹیگریز");
+  fillSelect($("filterPurpose"), PURPOSES, true, "تمام");
+  fillSelect($("fCategory"), CATEGORIES, true, "کیٹیگری چنیں");
+  fillSelect($("fPurpose"), PURPOSES, true, "مقصد چنیں");
+  fillSelect($("fCity"), CITIES, true, "شہر چنیں");
+  fillSelect($("fFurnish"), FURNISHING, false);
+  fillSelect($("wCategory"), CATEGORIES, true, "کیٹیگری (اختیاری)");
+  fillSelect($("wCity"), CITIES, true, "شہر (اختیاری)");
+  $("fAmenities").innerHTML = AMENITIES.map(a =>
+    '<label><input type="checkbox" value="'+a+'"> '+a+"</label>"
+  ).join("");
+}
+
+function toggleCityOther(){
+  $("wrapCityOther").classList.toggle("hidden", $("fCity").value !== "دیگر");
+}
+function toggleWantCityOther(){
+  $("wrapWantCityOther").classList.toggle("hidden", $("wCity").value !== "دیگر");
+}
+function toggleCategoryFields(){
+  const veh = isVehicle($("fCategory").value);
+  const prop = isPropFields($("fCategory").value) || $("fCategory").value === "other" || !veh;
+  document.querySelectorAll(".js-vehicle").forEach(el => el.classList.toggle("hidden", !veh));
+  document.querySelectorAll(".js-prop").forEach(el => el.classList.toggle("hidden", veh));
+}
+
+/* ===== cards / home ===== */
+function searchHaystack(item){
+  return [
+    item.title, item.city, item.cityOther, item.area, item.desc, item.price, item.size,
+    catLabel(item.category), purposeLabel(item.purpose), item.make, item.model,
+    item.wantCategory && catLabel(item.wantCategory), item.wantCity, item.wantCityOther,
+    item.wantBudget, item.wantNotes, (item.amenities||[]).join(" ")
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function filteredListings(){
+  const q = ($("filterQ").value || "").trim().toLowerCase();
+  const city = $("filterCity").value;
+  const cat = $("filterCat").value;
+  const purpose = $("filterPurpose").value;
+  return getListings().filter(it => {
+    if (city && it.city !== city && it.cityOther !== city && displayCity(it) !== city) return false;
+    if (cat && it.category !== cat) return false;
+    if (purpose && it.purpose !== purpose) return false;
+    if (q && searchHaystack(it).indexOf(q) === -1) return false;
+    return true;
+  });
+}
+
+function cardHtml(item, opts){
+  opts = opts || {};
+  const compared = getCompare().indexOf(item.id) !== -1;
+  const wl = wantLine(item);
+  const loc = item.location ? mapsLink(item.location) : "";
+  return '<article class="card" data-id="'+item.id+'">' +
+    '<div class="card-img" style="background-image:url(\''+photoOf(item).replace(/'/g,"%27")+'\')">' +
+      '<span class="badge">'+purposeLabel(item.purpose)+'</span>' +
+      (item.wantCategory ? '<span class="badge badge-want">تبادلہ</span>' : '') +
+    '</div>' +
+    '<div class="card-body">' +
+      '<h3>'+esc(item.title)+'</h3>' +
+      '<div class="meta">'+esc(catLabel(item.category))+' · '+esc(displayCity(item))+(item.area ? "، "+esc(item.area) : "")+'</div>' +
+      (item.price ? '<div class="price">'+esc(item.price)+'</div>' : '') +
+      (wl ? '<div class="want-line">'+esc(wl)+'</div>' : '') +
+      (loc ? '<a href="'+loc+'" target="_blank" rel="noopener" class="help" data-stop="1">نقشہ</a>' : '') +
+      '<div class="card-actions">' +
+        '<a class="btn btn-solid" href="#detail/'+item.id+'">تفصیل</a>' +
+        '<a class="btn btn-ok" href="'+waLink(item.whatsapp, "السلام علیکم، میں Property Exchange پر \""+item.title+"\" کے بارے میں پوچھنا چاہتا/چاہتی ہوں۔")+'" target="_blank" rel="noopener" data-stop="1">WhatsApp</a>' +
+        '<button type="button" class="btn btn-ghost" data-compare="'+item.id+'" data-stop="1">'+(compared?"موازنہ سے ہٹائیں":"موازنہ")+'</button>' +
+        (opts.manage ? '<button type="button" class="btn btn-ghost" data-edit="'+item.id+'" data-stop="1">ترمیم</button>' +
+                       '<button type="button" class="btn btn-danger" data-del="'+item.id+'" data-stop="1">حذف</button>' : '') +
+      '</div></div></article>';
+}
+
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function renderHome(){
+  const list = filteredListings();
+  $("resultCount").textContent = list.length + " لسٹنگز";
+  $("listingGrid").innerHTML = list.map(it => cardHtml(it)).join("");
+  $("listingEmpty").classList.toggle("hidden", list.length > 0);
+}
+
+function renderMy(){
+  const session = getSession();
+  if (!session) return;
+  const all = getListings();
+  const list = isAdmin() ? all : all.filter(it => it.ownerId === session.userId || it.ownerId === session.email);
+  $("myLede").textContent = isAdmin() ? "ایڈمن: تمام لسٹنگز۔" : "آپ کی اپنی لسٹنگز۔";
+  $("exportWrap").classList.toggle("hidden", !isAdmin());
+  $("myGrid").innerHTML = list.map(it => cardHtml(it, { manage:true })).join("");
+  $("myEmpty").classList.toggle("hidden", list.length > 0);
+}
+
+function renderLeads(){
+  const leads = getLeads().slice().sort((a,b)=>b.createdAt-a.createdAt);
+  $("leadsEmpty").classList.toggle("hidden", leads.length > 0);
+  if (!leads.length) { $("leadsTable").innerHTML = ""; return; }
+  $("leadsTable").innerHTML = "<thead><tr><th>وقت</th><th>نام</th><th>فون</th><th>پراپرٹی</th><th>لوکیشن</th></tr></thead><tbody>" +
+    leads.map(l => {
+      const link = mapsLink(l.location);
+      return "<tr><td>"+esc(karachiTime(l.createdAt))+"</td><td>"+esc(l.name)+"</td><td>"+esc(l.phone)+"</td><td>"+esc(l.propertyTitle||l.propertyId)+"</td><td>"+(link?'<a href="'+link+'" target="_blank" rel="noopener">نقشہ</a>':"—")+"</td></tr>";
+    }).join("") + "</tbody>";
+}
+
+function renderCompare(){
+  const ids = getCompare();
+  const items = ids.map(findListing).filter(Boolean);
+  if (items.length < 2) {
+    $("compareBox").innerHTML = '<div class="empty">موازنہ کے لیے ہوم سے 2 یا 3 لسٹنگز منتخب کریں۔ فی الحال '+items.length+' منتخب ہیں۔</div>';
+    return;
+  }
+  const rows = [
+    ["عنوان","title"],["کیٹیگری",it=>catLabel(it.category)],["مقصد",it=>purposeLabel(it.purpose)],
+    ["شہر",it=>displayCity(it)+(it.area?"، "+it.area:"")],["قیمت","price"],["رقبہ","size"],
+    ["بیڈ روم","beds"],["باتھ روم","baths"],["فرنشنگ",it=>furnishLabel(it.furnish)],
+    ["میک/ماڈل",it=>[it.make,it.model,it.year].filter(Boolean).join(" ")],["میلیج","mileage"],
+    ["سہولیات",it=>(it.amenities||[]).join("، ")],["چاہیے کیٹیگری",it=>catLabel(it.wantCategory)],
+    ["چاہیے شہر",it=>it.wantCity==="دیگر"?(it.wantCityOther||"دیگر"):(it.wantCity||"")],
+    ["بجٹ / فرق","wantBudget"],["چاہت کے نوٹس","wantNotes"],["لوکیشن",it=>mapsLink(it.location)||"—"]
+  ];
+  let html = '<div style="overflow:auto"><table class="compare-table"><thead><tr><th>تفصیل</th>' +
+    items.map(it=>"<th>"+esc(it.title)+"</th>").join("") + "</tr></thead><tbody>";
+  rows.forEach(([label, key]) => {
+    html += "<tr><th>"+label+"</th>" + items.map(it => {
+      const v = typeof key === "function" ? key(it) : it[key];
+      if (label === "لوکیشن" && v && v !== "—" && v.indexOf("http")===0) return '<td><a href="'+v+'" target="_blank" rel="noopener">نقشہ</a></td>';
+      return "<td>"+esc(v||"—")+"</td>";
+    }).join("") + "</tr>";
+  });
+  html += "</tbody></table></div>";
+  $("compareBox").innerHTML = html;
+}
+
+function renderDetail(id){
+  const item = findListing(id);
+  if (!item) { $("detailBox").innerHTML = '<div class="empty">یہ لسٹنگ نہیں ملی۔</div>'; return; }
+  const loc = mapsLink(item.location);
+  const wl = wantLine(item);
+  const facts = [
+    ["کیٹیگری", catLabel(item.category)],["مقصد", purposeLabel(item.purpose)],
+    ["شہر", displayCity(item)],["علاقہ", item.area],["قیمت", item.price],["رقبہ", item.size],
+    ["بیڈ روم", item.beds],["باتھ روم", item.baths],["فرنشنگ", furnishLabel(item.furnish)],
+    ["میک", item.make],["ماڈل", item.model],["سال", item.year],["میلیج", item.mileage]
+  ].filter(x => x[1]);
+  $("detailBox").innerHTML =
+    '<p><a href="#home">← واپس ہوم</a></p>' +
+    '<div class="detail">' +
+      '<div>' +
+        '<img class="detail-img" alt="" src="'+photoOf(item)+'" onerror="this.src=\''+PLACEHOLDER_IMG+'\'">' +
+        (loc ? '<p><a class="btn btn-ghost" href="'+loc+'" target="_blank" rel="noopener">گوگل میپس پر لوکیشن</a></p>' : '') +
+      '</div>' +
+      '<div class="panel">' +
+        '<h2 class="page-title">'+esc(item.title)+'</h2>' +
+        '<div class="price">'+esc(item.price||"")+'</div>' +
+        '<div class="kv">'+facts.map(f=>"<div><b>"+f[0]+"</b>"+esc(f[1])+"</div>").join("")+'</div>' +
+        (item.amenities&&item.amenities.length ? '<p><b>سہولیات:</b> '+esc(item.amenities.join("، "))+'</p>' : '') +
+        (item.desc ? '<p>'+esc(item.desc)+'</p>' : '') +
+        '<div class="section want"><h3>مجھے چاہیے</h3><p>'+(wl?esc(wl):"کوئی چاہت درج نہیں۔")+'</p></div>' +
+        '<p><a class="btn btn-ok" href="'+waLink(item.whatsapp,"السلام علیکم، میں Property Exchange پر \""+item.title+"\" کے بارے میں پوچھنا چاہتا/چاہتی ہوں۔")+'" target="_blank" rel="noopener">WhatsApp</a></p>' +
+        '<form id="leadForm" class="section" data-pid="'+item.id+'">' +
+          '<h3>رابطہ / پوچھ گچھ</h3>' +
+          '<label class="field">آپ کا نام <input id="leadName" required></label>' +
+          '<label class="field" style="margin-top:8px">فون <input id="leadPhone" required inputmode="tel"></label>' +
+          '<div style="margin-top:10px">' +
+            '<p class="help">لوکیشن اختیاری ہے۔ صرف بٹن دبانے پر لی جاتی ہے۔</p>' +
+            '<div class="loc-box">' +
+              '<button type="button" class="btn btn-ghost" id="btnLeadLocation">اپنی لوکیشن شیئر کریں</button>' +
+              '<span class="loc-ok hidden" id="leadLocOk">لوکیشن شامل ہو گئی</span>' +
+              '<button type="button" class="btn btn-ghost hidden" id="btnLeadLocRemove">ہٹائیں</button>' +
+            '</div>' +
+          '</div>' +
+          '<p class="error" id="leadError"></p>' +
+          '<button type="submit" class="btn btn-solid" style="margin-top:10px">پیغام بھیجیں</button>' +
+        '</form>' +
+      '</div></div>';
+  leadLocation = null;
+  $("btnLeadLocation").addEventListener("click", shareLeadLocation);
+  $("btnLeadLocRemove").addEventListener("click", () => {
+    leadLocation = null;
+    $("leadLocOk").classList.add("hidden");
+    $("btnLeadLocRemove").classList.add("hidden");
+  });
+  $("leadForm").addEventListener("submit", onLeadSubmit);
+}
+
+/* ===== optional geolocation (buttons only) ===== */
+function requestLocation(onOk, onFail){
+  if (!navigator.geolocation) { onFail("آپ کے براؤزر میں لوکیشن دستیاب نہیں۔"); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => onOk({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+    err => {
+      if (err && err.code === 1) onFail("لوکیشن کی اجازت نہیں ملی۔ فارم بغیر لوکیشن کے بھی چلے گا۔");
+      else onFail("لوکیشن نہیں مل سکی۔ فارم بغیر لوکیشن کے بھی چلے گا۔");
+    },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+  );
+}
+
+function shareAddLocation(){
+  requestLocation(loc => {
+    addLocation = loc;
+    $("addLocOk").classList.remove("hidden");
+    $("btnAddLocRemove").classList.remove("hidden");
+    toast("لوکیشن شامل ہو گئی");
+  }, msg => toast(msg));
+}
+
+function shareLeadLocation(){
+  requestLocation(loc => {
+    leadLocation = loc;
+    $("leadLocOk").classList.remove("hidden");
+    $("btnLeadLocRemove").classList.remove("hidden");
+    toast("لوکیشن شامل ہو گئی");
+  }, msg => toast(msg));
+}
+
+/* ===== photos ===== */
+function previewPhoto(src){
+  const img = $("fPhotoPreview");
+  if (src) { img.src = src; img.style.display = "block"; }
+  else { img.removeAttribute("src"); img.style.display = "none"; }
+}
+
+function fileToDataURL(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const max = 900;
+        let w = img.width, h = img.height;
+        if (w > max || h > max) { const r = Math.min(max/w, max/h); w = Math.round(w*r); h = Math.round(h*r); }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.onerror = () => resolve(reader.result);
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ===== add / edit form ===== */
+function resetAddForm(){
+  $("addForm").reset();
+  $("editId").value = "";
+  $("addTitle").textContent = "پراپرٹی شامل کریں";
+  $("addError").textContent = "";
+  photoDataUrl = "";
+  addLocation = null;
+  $("addLocOk").classList.add("hidden");
+  $("btnAddLocRemove").classList.add("hidden");
+  previewPhoto("");
+  toggleCityOther(); toggleWantCityOther(); toggleCategoryFields();
+}
+
+function fillAddForm(item){
+  resetAddForm();
+  $("editId").value = item.id;
+  $("addTitle").textContent = "لسٹنگ میں ترمیم";
+  $("fTitle").value = item.title || "";
+  $("fCategory").value = item.category || "";
+  $("fPurpose").value = item.purpose || "";
+  $("fCity").value = CITIES.indexOf(item.city) >= 0 ? item.city : "دیگر";
+  $("fCityOther").value = item.cityOther || (CITIES.indexOf(item.city) < 0 ? item.city : "");
+  $("fArea").value = item.area || "";
+  $("fPrice").value = item.price || "";
+  $("fSize").value = item.size || "";
+  $("fBeds").value = item.beds || "";
+  $("fBaths").value = item.baths || "";
+  $("fFurnish").value = item.furnish || "";
+  $("fMake").value = item.make || "";
+  $("fModel").value = item.model || "";
+  $("fYear").value = item.year || "";
+  $("fMileage").value = item.mileage || "";
+  $("fPhotoUrl").value = item.photoUrl || (!item.photo || String(item.photo).indexOf("data:")===0 ? "" : item.photo) || "";
+  photoDataUrl = item.photo && String(item.photo).indexOf("data:")===0 ? item.photo : "";
+  previewPhoto(photoDataUrl || $("fPhotoUrl").value);
+  $("fWhatsapp").value = item.whatsapp || "";
+  $("fDesc").value = item.desc || "";
+  $("wCategory").value = item.wantCategory || "";
+  $("wCity").value = CITIES.indexOf(item.wantCity) >= 0 ? item.wantCity : (item.wantCity ? "دیگر" : "");
+  $("wCityOther").value = item.wantCityOther || "";
+  $("wBudget").value = item.wantBudget || "";
+  $("wNotes").value = item.wantNotes || "";
+  (item.amenities || []).forEach(a => {
+    const box = document.querySelector('#fAmenities input[value="'+a+'"]');
+    if (box) box.checked = true;
+  });
+  if (item.location) {
+    addLocation = item.location;
+    $("addLocOk").classList.remove("hidden");
+    $("btnAddLocRemove").classList.remove("hidden");
+  }
+  toggleCityOther(); toggleWantCityOther(); toggleCategoryFields();
+}
+
+function collectAddForm(){
+  const amenities = [...document.querySelectorAll("#fAmenities input:checked")].map(i => i.value);
+  const citySel = $("fCity").value;
+  const item = {
+    title: $("fTitle").value.trim(),
+    category: $("fCategory").value,
+    purpose: $("fPurpose").value,
+    city: citySel,
+    cityOther: citySel === "دیگر" ? $("fCityOther").value.trim() : "",
+    area: $("fArea").value.trim(),
+    price: $("fPrice").value.trim(),
+    size: $("fSize").value.trim(),
+    beds: $("fBeds").value.trim(),
+    baths: $("fBaths").value.trim(),
+    furnish: $("fFurnish").value,
+    make: $("fMake").value.trim(),
+    model: $("fModel").value.trim(),
+    year: $("fYear").value.trim(),
+    mileage: $("fMileage").value.trim(),
+    amenities,
+    photoUrl: $("fPhotoUrl").value.trim(),
+    photo: photoDataUrl || $("fPhotoUrl").value.trim(),
+    whatsapp: $("fWhatsapp").value.trim() || CONFIG.DEFAULT_WHATSAPP,
+    desc: $("fDesc").value.trim(),
+    wantCategory: $("wCategory").value,
+    wantCity: $("wCity").value,
+    wantCityOther: $("wCity").value === "دیگر" ? $("wCityOther").value.trim() : "",
+    wantBudget: $("wBudget").value.trim(),
+    wantNotes: $("wNotes").value.trim()
+  };
+  if (addLocation) item.location = { lat: addLocation.lat, lng: addLocation.lng };
+  return item;
+}
+
+function validateAdd(item){
+  if (!item.title) return "عنوان لکھیں۔";
+  if (!item.category) return "کیٹیگری چنیں۔";
+  if (!item.purpose) return "مقصد چنیں۔";
+  if (!item.city) return "شہر چنیں۔";
+  if (item.city === "دیگر" && !item.cityOther) return "شہر یا علاقہ لکھیں۔";
+  if (item.purpose === "exchange" && !item.wantCategory && !item.wantNotes && !item.wantCity)
+    return "تبادلہ کے لیے بتائیں آپ کو کیا چاہیے۔";
+  return "";
+}
+
+async function onAddSubmit(e){
+  e.preventDefault();
+  const session = getSession();
+  if (!session) { afterLoginHash = "add"; location.hash = "login"; return; }
+  const data = collectAddForm();
+  const err = validateAdd(data);
+  $("addError").textContent = err || "";
+  if (err) return;
+  const list = getListings();
+  const editId = $("editId").value;
+  if (editId) {
+    const i = list.findIndex(x => x.id === editId);
+    if (i >= 0) {
+      const prev = list[i];
+      list[i] = Object.assign({}, prev, data, { id: prev.id, ownerId: prev.ownerId, createdAt: prev.createdAt, updatedAt: Date.now() });
+      if (!addLocation) delete list[i].location;
+    }
+    saveListings(list);
+    toast("لسٹنگ اپڈیٹ ہو گئی");
+  } else {
+    const item = Object.assign({}, data, {
+      id: "u-" + Date.now(),
+      ownerId: session.userId || session.email || "user",
+      ownerName: session.name || session.email || "",
+      createdAt: Date.now()
+    });
+    list.unshift(item);
+    saveListings(list);
+    toast("نئی لسٹنگ سب سے اوپر لگ گئی");
+    const locLine = item.location ? ("\nنقشہ: " + mapsLink(item.location)) : "";
+    notifyOwner({
+      event: "new_listing",
+      subject: "Property Exchange: نئی لسٹنگ — " + item.title,
+      title: item.title,
+      category: catLabel(item.category),
+      purpose: purposeLabel(item.purpose),
+      city: displayCity(item),
+      area: item.area || "",
+      price: item.price || "",
+      owner: item.ownerName || item.ownerId,
+      map: item.location ? mapsLink(item.location) : "",
+      message: "نئی لسٹنگ:\nعنوان: "+item.title+"\nکیٹیگری: "+catLabel(item.category)+
+        "\nمقصد: "+purposeLabel(item.purpose)+"\nشہر: "+displayCity(item)+
+        "\nقیمت: "+(item.price||"—")+locLine+"\nوقت: "+karachiTime()
+    });
+  }
+  resetAddForm();
+  location.hash = "home";
+  renderHome();
+}
+
+/* ===== leads ===== */
+async function onLeadSubmit(e){
+  e.preventDefault();
+  const pid = e.target.getAttribute("data-pid");
+  const item = findListing(pid);
+  const name = $("leadName").value.trim();
+  const phone = $("leadPhone").value.trim();
+  if (!name || !phone) { $("leadError").textContent = "نام اور فون لکھیں۔"; return; }
+  $("leadError").textContent = "";
+  const lead = {
+    id: "lead-" + Date.now(),
+    name, phone,
+    propertyId: pid,
+    propertyTitle: item ? item.title : pid,
+    createdAt: Date.now()
+  };
+  if (leadLocation) lead.location = { lat: leadLocation.lat, lng: leadLocation.lng };
+  const leads = getLeads();
+  leads.unshift(lead);
+  saveLeads(leads);
+  const locLine = lead.location ? ("\nنقشہ: " + mapsLink(lead.location)) : "";
+  notifyOwner({
+    event: "lead",
+    subject: "Property Exchange: نئی لیڈ — " + lead.propertyTitle,
+    name: lead.name,
+    phone: lead.phone,
+    property: lead.propertyTitle,
+    map: lead.location ? mapsLink(lead.location) : "",
+    message: "نئی لیڈ:\nنام: "+lead.name+"\nفون: "+lead.phone+"\nپراپرٹی: "+lead.propertyTitle+locLine+"\nوقت: "+karachiTime()
+  });
+  toast("آپ کی تفصیل مالک کو بھیج دی گئی");
+  e.target.reset();
+  leadLocation = null;
+  $("leadLocOk").classList.add("hidden");
+  $("btnLeadLocRemove").classList.add("hidden");
+}
+
+/* ===== auth ===== */
+async function notifyAuth(eventType, user){
+  notifyOwner({
+    event: eventType,
+    subject: "Property Exchange: " + (eventType === "signup" ? "نیا سائن اپ" : "لاگ ان") + " — " + (user.name || user.email || user.username),
+    name: user.name || "",
+    email: user.email || user.username || "",
+    phone: user.phone || "",
+    time: karachiTime(),
+    message: (eventType === "signup" ? "سائن اپ" : "لاگ ان") +
+      "\nنام: " + (user.name || "—") +
+      "\nای میل/یوزرنیم: " + (user.email || user.username || "—") +
+      "\nفون: " + (user.phone || "نہیں دیا") +
+      "\nوقت: " + karachiTime()
+  });
+}
+
+async function onSignup(e){
+  e.preventDefault();
+  $("signupError").textContent = "";
+  const name = $("suName").value.trim();
+  const email = $("suEmail").value.trim().toLowerCase();
+  const phone = $("suPhone").value.trim();
+  const pass = $("suPass").value;
+  if (!name || !email || !pass) { $("signupError").textContent = "نام، ای میل اور پاس ورڈ ضروری ہیں۔"; return; }
+  if (pass.length < 6) { $("signupError").textContent = "پاس ورڈ کم از کم 6 حروف کا ہو۔"; return; }
+  if (email === CONFIG.ADMIN_USER.toLowerCase()) { $("signupError").textContent = "یہ ای میل دستیاب نہیں۔"; return; }
+  try {
+    const passwordHash = await sha256Hex(pass);
+    const users = getUsers();
+    if (users.some(u => u.email === email)) { $("signupError").textContent = "اس ای میل سے پہلے اکاؤنٹ موجود ہے۔"; return; }
+    const user = { id: "usr-" + Date.now(), name, email, phone, passwordHash, createdAt: Date.now() };
+    users.push(user);
+    saveUsers(users);
+    setSession({ role:"visitor", userId:user.id, name, email, phone });
+    $("suPass").value = "";
+    await notifyAuth("signup", { name, email, phone });
+    toast("سائن اپ ہو گیا");
+    updateAuthUi();
+    location.hash = afterLoginHash || "home";
+  } catch (err) {
+    if (String(err.message) === "secure-context") {
+      $("signupError").textContent = "سائن اپ کے لیے سائٹ کو GitHub Pages یا لوکل سرور (http://localhost) پر کھولیں۔";
+    } else {
+      $("signupError").textContent = "سائن اپ نہیں ہو سکا۔";
+    }
+  }
+}
+
+async function onLogin(e){
+  e.preventDefault();
+  $("loginError").textContent = "";
+  const user = ($("loginUser").value || "").trim();
+  const pass = $("loginPass").value;
+  if (!user || !pass) { $("loginError").textContent = "یوزرنیم/ای میل اور پاس ورڈ لکھیں۔"; return; }
+
+  if (user.toLowerCase() === CONFIG.ADMIN_USER.toLowerCase() && pass === CONFIG.ADMIN_PASSWORD) {
+    setSession({ role:"admin", userId:"admin", name:"Admin", email: CONFIG.OWNER_EMAIL, username: CONFIG.ADMIN_USER });
+    $("loginPass").value = "";
+    await notifyAuth("login", { name:"Admin", email: CONFIG.OWNER_EMAIL, username: CONFIG.ADMIN_USER, phone:"" });
+    toast("ایڈمن لاگ ان ہو گیا");
+    updateAuthUi();
+    location.hash = afterLoginHash || "home";
+    return;
+  }
+
+  try {
+    const hash = await sha256Hex(pass);
+    const found = getUsers().find(u => u.email === user.toLowerCase());
+    if (!found || found.passwordHash !== hash) {
+      $("loginError").textContent = "یوزرنیم یا پاس ورڈ غلط ہے۔";
+      return;
+    }
+    setSession({ role:"visitor", userId:found.id, name:found.name, email:found.email, phone:found.phone||"" });
+    $("loginPass").value = "";
+    await notifyAuth("login", { name:found.name, email:found.email, phone:found.phone||"" });
+    toast("لاگ ان ہو گیا");
+    updateAuthUi();
+    location.hash = afterLoginHash || "home";
+  } catch (err) {
+    if (String(err.message) === "secure-context") {
+      $("loginError").textContent = "لاگ ان کے لیے سائٹ کو GitHub Pages یا لوکل سرور پر کھولیں۔";
+    } else {
+      $("loginError").textContent = "یوزرنیم یا پاس ورڈ غلط ہے۔";
+    }
+  }
+}
+
+function logout(){
+  setSession(null);
+  updateAuthUi();
+  toast("لاگ آؤٹ ہو گیا");
+  location.hash = "home";
+}
+
+function updateAuthUi(){
+  const s = getSession();
+  $("navLogin").classList.toggle("hidden", !!s);
+  $("navLogout").classList.toggle("hidden", !s);
+  $("navMy").classList.toggle("hidden", !s);
+  $("navLeads").classList.toggle("hidden", !isAdmin());
+  if (s) $("navLogout").textContent = (s.name || s.email || "صارف") + " · لاگ آؤٹ";
+}
+
+/* ===== routing ===== */
+function route(){
+  const raw = (location.hash || "#home").replace(/^#/, "");
+  const parts = raw.split("/");
+  const page = parts[0] || "home";
+  const id = parts.slice(1).join("/");
+
+  const needAuth = page === "add" || page === "my-listings";
+  if (needAuth && !isLoggedIn()) {
+    afterLoginHash = raw;
+    location.hash = "login";
+    return;
+  }
+  if (page === "leads" && !isAdmin()) {
+    toast("لیڈز صرف ایڈمن دیکھ سکتا ہے۔");
+    location.hash = isLoggedIn() ? "home" : "login";
+    return;
+  }
+
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  const el = $("page-" + page) || $("page-home");
+  el.classList.add("active");
+  document.querySelectorAll("[data-nav]").forEach(a => {
+    a.classList.toggle("active", a.getAttribute("data-nav") === page);
+  });
+
+  if (page === "home") renderHome();
+  else if (page === "add") { if (!$("editId").value) { /* keep edit state if coming from edit */ } }
+  else if (page === "compare") renderCompare();
+  else if (page === "my-listings") renderMy();
+  else if (page === "leads") renderLeads();
+  else if (page === "detail") renderDetail(id);
+  else if (page === "login") { $("loginError").textContent = ""; $("signupError").textContent = ""; }
+  window.scrollTo(0,0);
+}
+
+/* ===== events ===== */
+function onGridClick(e){
+  const stop = e.target.closest("[data-stop]");
+  const card = e.target.closest(".card");
+  if (e.target.closest("[data-compare]")) {
+    e.preventDefault();
+    const id = e.target.closest("[data-compare]").getAttribute("data-compare");
+    let ids = getCompare();
+    if (ids.indexOf(id) >= 0) ids = ids.filter(x => x !== id);
+    else {
+      if (ids.length >= CONFIG.MAX_COMPARE) { toast("صرف 3 لسٹنگز کا موازنہ ہو سکتا ہے۔"); return; }
+      ids.push(id);
+    }
+    saveCompare(ids);
+    if ($("page-home").classList.contains("active")) renderHome();
+    if ($("page-my-listings").classList.contains("active")) renderMy();
+    return;
+  }
+  if (e.target.closest("[data-edit]")) {
+    e.preventDefault();
+    const item = findListing(e.target.closest("[data-edit]").getAttribute("data-edit"));
+    if (item) { fillAddForm(item); location.hash = "add"; }
+    return;
+  }
+  if (e.target.closest("[data-del]")) {
+    e.preventDefault();
+    const id = e.target.closest("[data-del]").getAttribute("data-del");
+    if (!confirm("یہ لسٹنگ حذف کریں؟")) return;
+    saveListings(getListings().filter(x => x.id !== id));
+    saveCompare(getCompare().filter(x => x !== id));
+    toast("حذف ہو گئی");
+    renderMy(); renderHome();
+    return;
+  }
+  if (stop) return;
+  if (card && card.getAttribute("data-id")) {
+    location.hash = "detail/" + card.getAttribute("data-id");
+  }
+}
+
+function bind(){
+  fillLookups();
+  updateAuthUi();
+  $("fCity").addEventListener("change", toggleCityOther);
+  $("wCity").addEventListener("change", toggleWantCityOther);
+  $("fCategory").addEventListener("change", toggleCategoryFields);
+  $("filterQ").addEventListener("input", renderHome);
+  $("filterCity").addEventListener("change", renderHome);
+  $("filterCat").addEventListener("change", renderHome);
+  $("filterPurpose").addEventListener("change", renderHome);
+  $("filterReset").addEventListener("click", () => { $("filterForm").reset(); renderHome(); });
+  $("heroBrowse").addEventListener("click", (e) => { e.preventDefault(); document.querySelector(".filters").scrollIntoView({behavior:"smooth"}); });
+  $("addForm").addEventListener("submit", onAddSubmit);
+  $("addCancel").addEventListener("click", () => { resetAddForm(); location.hash = "home"; });
+  $("btnAddLocation").addEventListener("click", shareAddLocation);
+  $("btnAddLocRemove").addEventListener("click", () => {
+    addLocation = null;
+    $("addLocOk").classList.add("hidden");
+    $("btnAddLocRemove").classList.add("hidden");
+  });
+  $("fPhotoFile").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try { photoDataUrl = await fileToDataURL(file); previewPhoto(photoDataUrl); }
+    catch(err){ toast("تصویر نہیں کھل سکی"); }
+  });
+  $("fPhotoUrl").addEventListener("input", () => { if (!photoDataUrl) previewPhoto($("fPhotoUrl").value.trim()); });
+  $("loginForm").addEventListener("submit", onLogin);
+  $("signupForm").addEventListener("submit", onSignup);
+  $("navLogout").addEventListener("click", logout);
+  $("tabLogin").addEventListener("click", () => {
+    $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active");
+    $("loginForm").classList.remove("hidden"); $("signupForm").classList.add("hidden");
+  });
+  $("tabSignup").addEventListener("click", () => {
+    $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active");
+    $("signupForm").classList.remove("hidden"); $("loginForm").classList.add("hidden");
+  });
+  $("listingGrid").addEventListener("click", onGridClick);
+  $("myGrid").addEventListener("click", onGridClick);
+  $("btnExport").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(getListings(), null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "listings.json";
+    a.click();
+  });
+  window.addEventListener("hashchange", route);
+  toggleCategoryFields();
+  route();
+}
+
+document.addEventListener("DOMContentLoaded", bind);
+
+/* test hooks — no secrets emailed; hashes stay in localStorage only */
+window.__PE__ = {
+  CONFIG, KEYS, CATEGORIES, CITIES, PURPOSES,
+  isPlaceholderKey, sanitizeEmailPayload, sha256Hex, mapsLink, karachiTime,
+  getListings, getLeads, getUsers, getSession, getCompare,
+  getLastNotify(){ return lastNotify; },
+  getAddLocation(){ return addLocation; },
+  setAddLocation(loc){ addLocation = loc; },
+  seedListings
+};
+</script>
+</body>
+</html>
