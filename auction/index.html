@@ -89,7 +89,7 @@
     .bid-stat.current b { color: #9a7a10; }
     .nav {
       position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 430px;
-      background: #fff; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr 1fr;
+      background: #fff; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr;
       height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b); z-index: 30;
     }
     .nav button { border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 700; padding-top: 8px; }
@@ -200,7 +200,6 @@
     <nav class="nav" aria-label="Main">
       <button type="button" data-nav="home" data-testid="nav-home"><span class="ico">⌂</span>Auctions</button>
       <button type="button" data-nav="login" data-testid="nav-account"><span class="ico">👤</span>Account</button>
-      <button type="button" data-nav="admin" data-testid="nav-admin"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="toast" id="toast" role="status"></div>
   </div>
@@ -221,12 +220,18 @@
    *   appId: "YOUR_APP_ID"
    * };
    *
-   * REAL SECURITY (live site):
-   * The demo PIN 1234 is PREVIEW ONLY and is not real security. Do not use it live.
-   * On a live site, only ONE admin exists: the owner's Firebase Auth UID.
-   * Set ADMIN_UID below to that UID. Firestore rules must allow property
-   * create/update/delete only when request.auth.uid == ADMIN_UID.
+   * ADMIN ACCESS (static demo only):
+   * There is no Admin button in the public UI. The owner opens a secret hash
+   * route and unlocks with a password. Only the SHA-256 hash of that password
+   * is stored here — never the plain password. The admin session is kept in
+   * sessionStorage and ends on Logout or when the tab is closed.
+   *
+   * THIS IS STILL FRONT-END-ONLY PROTECTION for a static demo. Anyone who
+   * reads this file can attempt to bypass it. It is not real security.
+   * A live site needs Firebase Auth + a single ADMIN_UID and Firestore rules
+   * that allow property create/update/delete only when request.auth.uid == ADMIN_UID.
    * Regular users may only create bids; they cannot list or edit properties.
+   * See GUIDE-urdu.md.
    */
   const USE_FIREBASE = false;
   const ADMIN_UID = "YOUR_FIREBASE_ADMIN_UID";
@@ -234,11 +239,15 @@
   const CONFIG = {
     company: "Team Work Complex Pvt Ltd",
     phone: "0345-8514492",
-    demoAdminPin: "1234",
     storageKey: "twc-auction-preview-v2",
+
     tz: "Asia/Karachi",
     maxPhotos: 8
   };
+  // Secret admin route slug and password hash only. Plain password is not stored here.
+  const ADMIN_ROUTE = "x-lmqi53dqAkgPXu5J";
+  const ADMIN_PW_SHA256 = "cb70e123c893a9f08c6dbc9d242f19acabedc5a69ad714ecad67297290b35ce3";
+  const ADMIN_SESSION_KEY = "twc-auction-admin-session";
   const PROPERTY_TYPES = ["House","Plot","Commercial Plot","Shop","Apartment","Farm House","Other"];
 
   /* DATA LAYER
@@ -277,7 +286,7 @@
         { id: "b5", propertyId: "p3", name: "Example bidder", phone: "03115557788", amount: 45000000, createdAt: t - 2700000,
           offer: { type: "Plot", city: "DHA Phase 2, Islamabad", size: "2 Kanal", description: "Level plot on a 60-foot road.", estimatedValue: 44000000 } }
       ];
-      return { properties, bids, session: { name: null, phone: null, isAdmin: false }, demo: true };
+      return { properties, bids, session: { name: null, phone: null }, demo: true };
     }
     function load() {
       try {
@@ -285,7 +294,7 @@
         if (!raw) return seedData();
         const data = JSON.parse(raw);
         if (!data || !Array.isArray(data.properties)) return seedData();
-        data.session = data.session || { name: null, phone: null, isAdmin: false };
+        data.session = data.session || { name: null, phone: null }; delete data.session.isAdmin;
         data.bids = data.bids || [];
         data.properties.forEach(p => { if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : []; });
         data.bids.forEach(b => { if (!b.offer) b.offer = null; });
@@ -301,7 +310,11 @@
     function currentHighest(prop) { const top = highestBid(prop.id); return top ? top.amount : prop.minBid; }
     function minNextBid(prop) { const top = highestBid(prop.id); return top ? top.amount + prop.increment : prop.minBid + prop.increment; }
     function isEnded(prop) { return prop.status === "closed" || now() >= prop.auctionEnd; }
-    function requireAdmin() { if (!db.session.isAdmin) throw new Error("Admin only. Only the owner can manage properties."); }
+    function isAdminSession() {
+      try { return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1"; }
+      catch (e) { return false; }
+    }
+    function requireAdmin() { if (!isAdminSession()) throw new Error("Admin only. Only the owner can manage properties."); }
     const api = {
       getState() { return db; },
       getProperties() { return db.properties.slice().sort((a, b) => a.auctionEnd - b.auctionEnd); },
@@ -394,13 +407,22 @@
         if (!p) throw new Error("Enter a valid Pakistani mobile number, e.g. 0345-8514492.");
         db.session.name = n; db.session.phone = p; save(db); return api.getSession();
       },
-      logout() { db.session.name = null; db.session.phone = null; db.session.isAdmin = false; save(db); },
-      unlockAdmin(pin) {
-        // Demo-only gate. Live security must use Firebase Auth + ADMIN_UID + Firestore rules.
-        if (String(pin) !== CONFIG.demoAdminPin) throw new Error("Incorrect PIN.");
-        db.session.isAdmin = true; save(db); return true;
+      logout() { db.session.name = null; db.session.phone = null; save(db); },
+      isAdminSession,
+      async sha256Hex(text) {
+        const data = new TextEncoder().encode(String(text ?? ""));
+        const buf = await crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
       },
-      lockAdmin() { db.session.isAdmin = false; save(db); },
+      async unlockAdmin(password) {
+        const hex = await api.sha256Hex(password);
+        if (hex !== ADMIN_PW_SHA256) throw new Error("Incorrect password.");
+        sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+        return true;
+      },
+      lockAdmin() {
+        try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch (e) {}
+      },
       exportResults() {
         const rows = [["Property ID","Title","City","Size","Type","Status","Min bid","Highest bid","Winner name","Winner phone","Winner amount","Winner offer type","Winner offer city","Winner offer size","Winner offer value","Auction end (PKT)","Closed at (PKT)"]];
         db.properties.forEach(p => {
@@ -587,13 +609,16 @@
     const parts = hash.split("/").filter(Boolean);
     if (parts[0] === "property" && parts[1]) return { name: "detail", id: parts[1] };
     if (parts[0] === "login") return { name: "login" };
-    if (parts[0] === "admin" && parts[1] === "new") return { name: "admin-form", id: null };
-    if (parts[0] === "admin" && parts[1] === "edit" && parts[2]) return { name: "admin-form", id: parts[2] };
-    if (parts[0] === "admin" && parts[1] === "bids" && parts[2]) return { name: "admin-bids", id: parts[2] };
-    if (parts[0] === "admin") return { name: "admin" };
+    // #/admin and any other obvious admin paths always show the public home.
+    if (parts[0] === ADMIN_ROUTE && parts[1] === "new") return { name: "admin-form", id: null };
+    if (parts[0] === ADMIN_ROUTE && parts[1] === "edit" && parts[2]) return { name: "admin-form", id: parts[2] };
+    if (parts[0] === ADMIN_ROUTE && parts[1] === "bids" && parts[2]) return { name: "admin-bids", id: parts[2] };
+    if (parts[0] === ADMIN_ROUTE) return { name: "admin" };
     return { name: "home" };
   }
   function go(path) { location.hash = path; }
+  function adminPath(sub) { return "#/" + ADMIN_ROUTE + (sub ? "/" + String(sub).replace(/^\//, "") : ""); }
+  function goAdmin(sub) { go(adminPath(sub)); }
   function toast(msg) {
     const el = document.getElementById("toast");
     el.textContent = msg; el.classList.add("show");
@@ -677,7 +702,7 @@
         (winner ? escapeHtml(maskPhone(winner.phone))+" · "+formatPKR(winner.amount) : "No bids were placed")+"</strong>"+
         (winner && winner.offer ? "<em>Offered: "+escapeHtml(offerSummary(winner.offer))+"</em>" : "")+"</div>";
     } else if (ended) {
-      bidBox = '<div class="notice">Bidding has ended. The admin will close this auction and confirm the winner.</div>';
+      bidBox = '<div class="notice">Bidding has ended. The owner will close this auction and confirm the winner.</div>';
     } else {
       bidBox = '<div class="bid-box" data-testid="bid-box"><h3>Place a bid</h3>'+
         '<div class="min-next">Enter at least <b>'+formatPKR(need)+'</b> (current highest + minimum increment of '+formatPKR(p.increment)+'). Also describe the property you offer in exchange.</div>'+
@@ -795,13 +820,12 @@
 
   function renderAdmin() {
     const s = Store.getSession();
-    if (!s.isAdmin) {
-      return '<h2 class="page-title">Admin panel</h2><div class="gold-rule"></div>'+
-        '<div class="notice">Demo only. Use PIN <strong>1234</strong> to open the single-owner admin tools. This PIN is for the preview, not for a live site. On a live site, only your Firebase account (one admin UID) can add, edit or delete properties.</div>'+
+    if (!Store.isAdminSession()) {
+      return '<h2 class="page-title">Owner sign-in</h2><div class="gold-rule"></div>'+
         '<form id="pin-form" class="card" style="padding:14px">'+
-        '<div class="form-group"><label for="admin-pin">Admin PIN</label>'+
-        '<input id="admin-pin" data-testid="admin-pin" type="password" inputmode="numeric" maxlength="8" placeholder="1234" /></div>'+
-        '<div id="pin-error" class="error-box hidden" data-testid="pin-error"></div>'+
+        '<div class="form-group"><label for="admin-password">Password</label>'+
+        '<input id="admin-password" data-testid="admin-password" type="password" autocomplete="current-password" /></div>'+
+        '<div id="pin-error" class="error-box hidden" data-testid="admin-error"></div>'+
         '<button class="btn secondary" data-testid="admin-unlock" type="submit">Unlock</button></form>';
     }
     const list = Store.getProperties();
@@ -824,35 +848,38 @@
         "</div></div></div>";
     }).join("");
     return '<h2 class="page-title">Admin panel</h2><div class="gold-rule"></div>'+
-      '<div class="notice">You are the only admin in this demo. Only you can add, edit or delete listings, attach photos and a YouTube video, and confirm a winner. Other people can only bid.</div>'+
+      '<div class="notice">You are signed in as the owner. Only you can add, edit or delete listings, attach photos and a YouTube video, and confirm a winner. Other people can only bid.</div>'+
       '<div class="btn-row"><button class="btn" type="button" data-testid="admin-add" id="admin-add">Add property</button>'+
       '<button class="btn secondary" type="button" data-testid="export-csv" id="export-csv">Export CSV</button></div>'+
       '<div style="height:12px"></div>'+items+
       '<div class="btn-row" style="margin-top:8px"><button class="btn sm ghost" type="button" id="reset-demo" data-testid="reset-demo">Reset demo data</button>'+
-      '<button class="btn sm ghost" type="button" id="lock-admin">Lock admin</button></div>';
+      '<button class="btn sm danger" type="button" id="lock-admin" data-testid="admin-logout">Log out</button></div>';
   }
   function bindAdmin() {
     const pinForm = document.getElementById("pin-form");
     if (pinForm) {
-      pinForm.addEventListener("submit", (e) => {
+      pinForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const errEl = document.getElementById("pin-error");
-        try { Store.unlockAdmin(document.getElementById("admin-pin").value); toast("Admin unlocked (demo only)."); render(); }
-        catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+        try {
+          await Store.unlockAdmin(document.getElementById("admin-password").value);
+          toast("Signed in.");
+          render();
+        } catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
       });
       return;
     }
-    document.getElementById("admin-add").addEventListener("click", () => go("#/admin/new"));
+    document.getElementById("admin-add").addEventListener("click", () => goAdmin("new"));
     document.getElementById("export-csv").addEventListener("click", exportCsv);
-    document.getElementById("lock-admin").addEventListener("click", () => { Store.lockAdmin(); toast("Admin locked."); render(); });
+    document.getElementById("lock-admin").addEventListener("click", () => { Store.lockAdmin(); toast("Signed out."); go("#/"); });
     document.getElementById("reset-demo").addEventListener("click", () => {
       if (confirm("Reset all demo properties and bids? This only affects this browser.")) {
-        Store.resetDemo(); Store.unlockAdmin(CONFIG.demoAdminPin); toast("Demo data reset."); render();
+        Store.resetDemo(); toast("Demo data reset."); render();
       }
     });
-    document.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => go("#/admin/edit/"+b.getAttribute("data-edit"))));
-    document.querySelectorAll("[data-bids]").forEach(b => b.addEventListener("click", () => go("#/admin/bids/"+b.getAttribute("data-bids"))));
-    document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => go("#/admin/bids/"+b.getAttribute("data-close"))));
+    document.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => goAdmin("edit/"+b.getAttribute("data-edit"))));
+    document.querySelectorAll("[data-bids]").forEach(b => b.addEventListener("click", () => goAdmin("bids/"+b.getAttribute("data-bids"))));
+    document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => goAdmin("bids/"+b.getAttribute("data-close"))));
     document.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", () => {
       const id = b.getAttribute("data-delete");
       const p = Store.getProperty(id);
@@ -884,13 +911,13 @@
   }
   function renderAdminForm(id) {
     const s = Store.getSession();
-    if (!s.isAdmin) return renderAdmin();
+    if (!Store.isAdminSession()) return renderAdmin();
     const p = id ? Store.getProperty(id) : null;
-    if (id && !p) return '<button class="back" type="button" data-go="#/admin">‹  Back</button><div class="empty">Property not found.</div>';
+    if (id && !p) return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button><div class="empty">Property not found.</div>';
     const arts = ["house","plot","shop","farm"];
     const yt = p && p.youtubeId ? "https://youtu.be/"+p.youtubeId : "";
     App.photos = p && p.photos ? p.photos.slice() : [];
-    return '<button class="back" type="button" data-go="#/admin">‹  Admin</button>'+
+    return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button>'+
       '<h2 class="page-title">'+(p ? "Edit property" : "Add property")+'</h2><div class="gold-rule"></div>'+
       '<form id="prop-form" class="card" style="padding:14px">'+
       '<div class="form-group"><label for="f-title">Title</label><input id="f-title" data-testid="f-title" type="text" required value="'+escapeHtml(p?p.title:"")+'" /></div>'+
@@ -917,7 +944,7 @@
   }
   function bindAdminForm(id) {
     bindBack();
-    if (!Store.getSession().isAdmin) { bindAdmin(); return; }
+    if (!Store.isAdminSession()) { bindAdmin(); return; }
     const refreshThumbs = () => {
       document.getElementById("thumbs-wrap").innerHTML = thumbsHTML(App.photos);
       document.querySelectorAll("[data-remove-photo]").forEach(btn => {
@@ -960,9 +987,9 @@
   }
   function renderAdminBids(id) {
     const s = Store.getSession();
-    if (!s.isAdmin) return renderAdmin();
+    if (!Store.isAdminSession()) return renderAdmin();
     const p = Store.getProperty(id);
-    if (!p) return '<button class="back" type="button" data-go="#/admin">‹  Back</button><div class="empty">Property not found.</div>';
+    if (!p) return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button><div class="empty">Property not found.</div>';
     const bids = Store.getBids(id);
     const closed = p.status === "closed";
     const winner = p.winnerBidId ? bids.find(b => b.id === p.winnerBidId) : null;
@@ -976,7 +1003,7 @@
         (b.offer ? "Offers: "+escapeHtml(o.type)+", "+escapeHtml(o.size)+", "+escapeHtml(o.city)+" · Est. "+formatPKR(o.estimatedValue)+"<br>"+escapeHtml(o.description) : "No exchange property details")+
         "<br>"+escapeHtml(formatDate(b.createdAt))+"</div></div></label></div>";
     }).join("") : '<div class="empty">No bids yet.</div>';
-    return '<button class="back" type="button" data-go="#/admin">‹  Admin</button>'+
+    return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button>'+
       '<h2 class="page-title">Bids · '+escapeHtml(p.title)+'</h2><div class="gold-rule"></div>'+
       (closed
         ? '<div class="winner-banner" data-testid="winner"><span>Confirmed winner</span><strong>'+
@@ -989,7 +1016,7 @@
   }
   function bindAdminBids(id) {
     bindBack();
-    if (!Store.getSession().isAdmin) { bindAdmin(); return; }
+    if (!Store.isAdminSession()) { bindAdmin(); return; }
     const form = document.getElementById("close-form");
     if (!form || Store.getProperty(id).status === "closed") return;
     form.addEventListener("submit", (e) => {
