@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b2545" />
+  <meta name="description" content="Team Work Complex Pvt Ltd — Property Exchange weekly auction (boli) preview" />
+  <title>Property Auction | Team Work Complex Pvt Ltd</title>
+  <style>
+    :root {
+      --navy: #0b2545; --navy-mid: #14325a; --navy-deep: #07182c;
+      --gold: #f4c430; --gold-dim: #c9a227; --gold-soft: #fff6d4;
+      --bg: #eef2f6; --card: #ffffff; --text: #0b2545; --muted: #5c6b7a; --line: #e2e8ef;
+      --danger: #b42318; --danger-bg: #fdecea; --success: #0f7b3c; --success-bg: #e8f6ee;
+      --soon: #c05621; --live: #0f7b3c; --shadow: 0 8px 24px rgba(11, 37, 69, 0.08);
+      --radius: 16px; --header-h: 58px; --nav-h: 64px; --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: "Segoe UI", "Noto Sans", Roboto, system-ui, -apple-system, Arial, sans-serif;
+      background: var(--navy-deep); color: var(--text); line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; }
+    .app {
+      max-width: 430px; min-height: 100vh; min-height: 100dvh; margin: 0 auto;
+      background: var(--bg); position: relative; box-shadow: 0 0 48px rgba(0,0,0,.35);
+    }
+    .topbar { position: sticky; top: 0; z-index: 40; }
+    .demo-banner {
+      background: var(--gold); color: var(--navy); font-size: 11px; font-weight: 700;
+      letter-spacing: .04em; text-transform: uppercase; text-align: center; padding: 7px 12px;
+    }
+    .header {
+      background: var(--navy); color: #fff; padding: 10px 16px 12px;
+      display: flex; align-items: center; gap: 10px; min-height: var(--header-h);
+    }
+    .logo-mark {
+      width: 38px; height: 38px; flex: 0 0 38px; border-radius: 10px; background: var(--gold);
+      color: var(--navy); font-weight: 800; font-size: 11px; letter-spacing: -.04em;
+      display: grid; place-items: center;
+    }
+    .header h1 { font-size: 14px; font-weight: 700; line-height: 1.2; }
+    .header p { font-size: 11px; color: #c9d4e2; margin-top: 1px; }
+    .header .phone { margin-left: auto; color: var(--gold); font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .main { padding: 14px 14px calc(var(--nav-h) + var(--safe-b) + 16px); min-height: calc(100vh - 90px); }
+    .page-title { font-size: 20px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 4px; }
+    .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+    .gold-rule { height: 3px; width: 42px; background: var(--gold); border-radius: 2px; margin: 0 0 14px; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
+    .property-card { display: block; text-decoration: none; color: inherit; }
+    .photo { position: relative; height: 168px; background: var(--navy-mid); overflow: hidden; }
+    .photo img, .photo svg { width: 100%; height: 100%; object-fit: cover; }
+    .photo .badges, .gallery .badges {
+      position: absolute; top: 10px; left: 10px; right: 10px;
+      display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; z-index: 2;
+    }
+    .badge {
+      font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+      padding: 4px 8px; border-radius: 999px; background: rgba(11,37,69,.86); color: var(--gold);
+    }
+    .badge.example { background: rgba(244,196,48,.95); color: var(--navy); }
+    .badge.live { background: var(--live); color: #fff; }
+    .badge.live::before {
+      content: ""; display: inline-block; width: 6px; height: 6px; background: #fff;
+      border-radius: 50%; margin-right: 5px; animation: pulse 1.4s ease-in-out infinite; vertical-align: 1px;
+    }
+    .badge.soon { background: var(--soon); color: #fff; }
+    .badge.ended, .badge.closed { background: #4b5563; color: #fff; }
+    .badge.video { background: #c4302b; color: #fff; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .countdown-chip {
+      position: absolute; bottom: 10px; right: 10px; background: rgba(11,37,69,.92); color: var(--gold);
+      font-variant-numeric: tabular-nums; font-size: 11px; font-weight: 700; padding: 5px 8px; border-radius: 8px; z-index: 2;
+    }
+    .card-body { padding: 12px 14px 14px; }
+    .card-body h2 { font-size: 16px; font-weight: 750; line-height: 1.3; }
+    .meta { font-size: 12px; color: var(--muted); margin: 4px 0 8px; }
+    .wanted { font-size: 12px; background: var(--gold-soft); color: var(--navy); border-radius: 8px; padding: 7px 9px; margin-bottom: 10px; }
+    .wanted strong { font-weight: 700; }
+    .bid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .bid-stat { background: #f7f9fb; border-radius: 10px; padding: 8px 10px; }
+    .bid-stat span { display: block; font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .bid-stat b { font-size: 13px; font-weight: 800; }
+    .bid-stat.current b { color: #9a7a10; }
+    .nav {
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 430px;
+      background: #fff; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr 1fr;
+      height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b); z-index: 30;
+    }
+    .nav button { border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 700; padding-top: 8px; }
+    .nav button.active { color: var(--navy); box-shadow: inset 0 3px 0 var(--gold); }
+    .nav button .ico { display: block; font-size: 18px; line-height: 1; margin-bottom: 2px; }
+    .nav button.active .ico { color: var(--gold-dim); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+      border: 0; border-radius: 12px; padding: 13px 16px; font-weight: 760; font-size: 15px;
+      background: var(--gold); color: var(--navy);
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn.secondary { background: var(--navy); color: #fff; }
+    .btn.ghost { background: transparent; border: 1.5px solid var(--navy); color: var(--navy); }
+    .btn.danger { background: var(--danger); color: #fff; }
+    .btn.sm { width: auto; padding: 8px 12px; font-size: 13px; }
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-row .btn { flex: 1; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 5px; color: var(--navy); }
+    input[type="text"], input[type="tel"], input[type="number"], input[type="password"],
+    input[type="url"], input[type="datetime-local"], input[type="file"], select, textarea {
+      width: 100%; background: #fff; border: 1.5px solid var(--line); border-radius: 12px;
+      padding: 11px 12px; outline: none; -webkit-appearance: none; appearance: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--gold-dim); box-shadow: 0 0 0 3px rgba(244,196,48,.25); }
+    textarea { min-height: 72px; resize: vertical; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .error-box, .ok-box { border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin: 8px 0 12px; }
+    .error-box { background: var(--danger-bg); color: var(--danger); }
+    .ok-box { background: var(--success-bg); color: var(--success); }
+    .notice { background: var(--gold-soft); border-radius: 12px; padding: 10px 12px; font-size: 12px; margin-bottom: 14px; color: var(--navy); }
+    .gallery { position: relative; background: var(--navy-mid); }
+    .gallery-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .gallery-track::-webkit-scrollbar { display: none; }
+    .gallery-slide { flex: 0 0 100%; scroll-snap-align: start; height: 210px; position: relative; }
+    .gallery-slide img, .gallery-slide svg { width: 100%; height: 100%; object-fit: cover; }
+    .gallery-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+    .gallery-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.45); }
+    .gallery-dots span.on { background: var(--gold); }
+    .video-wrap { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 12px; overflow: hidden; }
+    .video-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 12px; }
+    .kv { background: #f7f9fb; border-radius: 10px; padding: 8px 10px; }
+    .kv span { display: block; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .kv b { font-size: 13px; }
+    .section-h { font-size: 15px; font-weight: 800; margin: 16px 0 8px; }
+    .bid-box { background: #fff; border: 2px solid var(--gold); border-radius: var(--radius); padding: 14px; margin-top: 8px; }
+    .bid-box h3 { font-size: 15px; margin-bottom: 4px; }
+    .min-next { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .min-next b { color: var(--navy); }
+    .offer-legend { font-size: 13px; font-weight: 800; margin: 4px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+    .history { list-style: none; }
+    .history li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .history li:last-child { border-bottom: 0; }
+    .history .who { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .history .when, .history .offer { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+    .history .offer { color: var(--navy); margin-top: 2px; }
+    .history .amt { font-weight: 800; white-space: nowrap; }
+    .history li.top .amt { color: #9a7a10; }
+    .empty { text-align: center; color: var(--muted); font-size: 13px; padding: 20px 8px; }
+    .winner-banner { background: var(--navy); color: #fff; border-radius: var(--radius); padding: 14px; margin: 10px 0 14px; }
+    .winner-banner span { color: var(--gold); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .winner-banner strong { display: block; font-size: 18px; margin-top: 4px; }
+    .winner-banner em { display: block; font-style: normal; font-size: 12px; color: #c9d4e2; margin-top: 4px; }
+    .back { border: 0; background: none; color: var(--navy); font-weight: 700; font-size: 13px; padding: 0 0 10px; display: inline-flex; align-items: center; gap: 4px; }
+    .user-chip { background: #fff; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; box-shadow: var(--shadow); }
+    .user-chip b { display: block; }
+    .user-chip span { font-size: 12px; color: var(--muted); }
+    .admin-list .row { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+    .admin-list h3 { font-size: 14px; }
+    .admin-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .thumb { position: relative; width: 76px; height: 76px; border-radius: 10px; overflow: hidden; background: var(--navy-mid); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb button { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border: 0; border-radius: 50%; background: rgba(11,37,69,.85); color: #fff; font-size: 14px; line-height: 22px; }
+    .admin-bid { padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .admin-bid:last-child { border-bottom: 0; }
+    .admin-bid label.pick { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+    .admin-bid .full { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+    .toast {
+      position: fixed; left: 50%; transform: translateX(-50%) translateY(20px);
+      bottom: calc(var(--nav-h) + var(--safe-b) + 12px); max-width: 390px; width: calc(100% - 32px);
+      background: var(--navy); color: #fff; padding: 12px 14px; border-radius: 12px; font-size: 13px;
+      font-weight: 650; opacity: 0; pointer-events: none; transition: .25s ease; z-index: 50;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .btn, .bid-box, input, form, .video-wrap { scroll-margin-top: 110px; scroll-margin-bottom: calc(var(--nav-h) + var(--safe-b) + 20px); }
+    .hidden { display: none !important; }
+    .footer-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 18px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="topbar">
+      <div class="demo-banner" data-testid="demo-banner">Demo preview — example data only, not a live auction</div>
+      <header class="header">
+        <div class="logo-mark" aria-hidden="true">TWC</div>
+        <div>
+          <h1>Team Work Complex Pvt Ltd</h1>
+          <p>Property Exchange Auction</p>
+        </div>
+        <a class="phone" href="tel:03458514492">0345-8514492</a>
+      </header>
+    </div>
+    <main class="main" id="main"></main>
+    <nav class="nav" aria-label="Main">
+      <button type="button" data-nav="home" data-testid="nav-home"><span class="ico">⌂</span>Auctions</button>
+      <button type="button" data-nav="login" data-testid="nav-account"><span class="ico">👤</span>Account</button>
+      <button type="button" data-nav="admin" data-testid="nav-admin"><span class="ico">⚙</span>Admin</button>
+    </nav>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+  <script>
+
+  /**
+   * FIREBASE CONFIG PLACEHOLDER
+   * Later: create a Firebase project, enable Firestore + Phone Auth, then paste
+   * the web app config below and set USE_FIREBASE to true. Until then this
+   * preview stores demo data in localStorage only (this browser, this device).
+   *
+   * const firebaseConfig = {
+   *   apiKey: "YOUR_API_KEY",
+   *   authDomain: "YOUR_PROJECT.firebaseapp.com",
+   *   projectId: "YOUR_PROJECT_ID",
+   *   storageBucket: "YOUR_PROJECT.appspot.com",
+   *   messagingSenderId: "YOUR_SENDER_ID",
+   *   appId: "YOUR_APP_ID"
+   * };
+   *
+   * REAL SECURITY (live site):
+   * The demo PIN 1234 is PREVIEW ONLY and is not real security. Do not use it live.
+   * On a live site, only ONE admin exists: the owner's Firebase Auth UID.
+   * Set ADMIN_UID below to that UID. Firestore rules must allow property
+   * create/update/delete only when request.auth.uid == ADMIN_UID.
+   * Regular users may only create bids; they cannot list or edit properties.
+   */
+  const USE_FIREBASE = false;
+  const ADMIN_UID = "YOUR_FIREBASE_ADMIN_UID";
+
+  const CONFIG = {
+    company: "Team Work Complex Pvt Ltd",
+    phone: "0345-8514492",
+    demoAdminPin: "1234",
+    storageKey: "twc-auction-preview-v2",
+    tz: "Asia/Karachi",
+    maxPhotos: 8
+  };
+  const PROPERTY_TYPES = ["House","Plot","Commercial Plot","Shop","Apartment","Farm House","Other"];
+
+  /* DATA LAYER
+     Swap LocalStore for a FirebaseStore (Firestore + Phone Auth) later.
+     Public documents must NEVER include owner name, CNIC, or documents.
+     Only the single admin may add/edit/delete auction properties.
+     Regular users may only place bids (amount + offered exchange property). */
+  const DataLayer = (() => {
+    const now = () => Date.now();
+    function seedData() {
+      const t = now();
+      const properties = [
+        { id: "p1", title: "10 Marla House, DHA Phase 5", city: "Lahore", size: "10 Marla", type: "House",
+          exchangeWanted: "5 Marla commercial shop in Gulberg, Lahore",
+          photos: [demoPhoto("house", "Example photo 1"), demoPhoto("interior", "Example photo 2")],
+          art: "house", youtubeId: "aqz-KE-bpKQ", minBid: 25000000, increment: 100000,
+          auctionEnd: t + (2 * 24 + 4) * 3600000, status: "active", winnerBidId: null, isExample: true, createdAt: t - 86400000 },
+        { id: "p2", title: "5 Marla Commercial Plot, Bahria Town", city: "Rawalpindi", size: "5 Marla", type: "Commercial Plot",
+          exchangeWanted: "Residential house in Islamabad", photos: [], art: "plot", youtubeId: null,
+          minBid: 18000000, increment: 50000, auctionEnd: t + (11 * 3600000) + (25 * 60000),
+          status: "active", winnerBidId: null, isExample: true, createdAt: t - 43200000 },
+        { id: "p3", title: "1 Kanal Farm House, Bani Gala", city: "Islamabad", size: "1 Kanal", type: "Farm House",
+          exchangeWanted: "2 Kanal plot in DHA, any city", photos: [], art: "farm", youtubeId: null,
+          minBid: 40000000, increment: 200000, auctionEnd: t + 5 * 24 * 3600000,
+          status: "active", winnerBidId: null, isExample: true, createdAt: t - 172800000 }
+      ];
+      const bids = [
+        { id: "b1", propertyId: "p1", name: "Example bidder", phone: "03001112233", amount: 25100000, createdAt: t - 36000000,
+          offer: { type: "Shop", city: "Gulberg, Lahore", size: "4 Marla", description: "Ground-floor shop on a main road.", estimatedValue: 22000000 } },
+        { id: "b2", propertyId: "p1", name: "Example bidder", phone: "03219876543", amount: 25500000, createdAt: t - 18000000,
+          offer: { type: "House", city: "Johar Town, Lahore", size: "8 Marla", description: "Corner house with a car porch.", estimatedValue: 24000000 } },
+        { id: "b3", propertyId: "p1", name: "Example bidder", phone: "03331234567", amount: 26500000, createdAt: t - 5400000,
+          offer: { type: "Shop", city: "Gulberg, Lahore", size: "5 Marla", description: "Commercial shop near MM Alam Road.", estimatedValue: 26000000 } },
+        { id: "b4", propertyId: "p3", name: "Example bidder", phone: "03337654321", amount: 40200000, createdAt: t - 7200000,
+          offer: { type: "Plot", city: "DHA, Islamabad", size: "2 Kanal", description: "Open plot, clear title.", estimatedValue: 38000000 } },
+        { id: "b5", propertyId: "p3", name: "Example bidder", phone: "03115557788", amount: 45000000, createdAt: t - 2700000,
+          offer: { type: "Plot", city: "DHA Phase 2, Islamabad", size: "2 Kanal", description: "Level plot on a 60-foot road.", estimatedValue: 44000000 } }
+      ];
+      return { properties, bids, session: { name: null, phone: null, isAdmin: false }, demo: true };
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(CONFIG.storageKey);
+        if (!raw) return seedData();
+        const data = JSON.parse(raw);
+        if (!data || !Array.isArray(data.properties)) return seedData();
+        data.session = data.session || { name: null, phone: null, isAdmin: false };
+        data.bids = data.bids || [];
+        data.properties.forEach(p => { if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : []; });
+        data.bids.forEach(b => { if (!b.offer) b.offer = null; });
+        return data;
+      } catch (e) { return seedData(); }
+    }
+    function save(data) { localStorage.setItem(CONFIG.storageKey, JSON.stringify(data)); }
+    let db = load();
+    function uid(prefix) { return prefix + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4); }
+    function highestBid(propertyId) {
+      return db.bids.filter(b => b.propertyId === propertyId).sort((a, b) => b.amount - a.amount || b.createdAt - a.createdAt)[0] || null;
+    }
+    function currentHighest(prop) { const top = highestBid(prop.id); return top ? top.amount : prop.minBid; }
+    function minNextBid(prop) { const top = highestBid(prop.id); return top ? top.amount + prop.increment : prop.minBid + prop.increment; }
+    function isEnded(prop) { return prop.status === "closed" || now() >= prop.auctionEnd; }
+    function requireAdmin() { if (!db.session.isAdmin) throw new Error("Admin only. Only the owner can manage properties."); }
+    const api = {
+      getState() { return db; },
+      getProperties() { return db.properties.slice().sort((a, b) => a.auctionEnd - b.auctionEnd); },
+      getProperty(id) { return db.properties.find(p => p.id === id) || null; },
+      currentHighest, minNextBid, isEnded, highestBid,
+      saveProperty(input) {
+        requireAdmin();
+        const existing = input.id ? db.properties.find(p => p.id === input.id) : null;
+        if (input.id && !existing) throw new Error("Property not found.");
+        let youtubeId = existing ? existing.youtubeId : null;
+        if (Object.prototype.hasOwnProperty.call(input, "youtubeUrl") || Object.prototype.hasOwnProperty.call(input, "youtubeId")) {
+          const raw = input.youtubeUrl != null ? input.youtubeUrl : input.youtubeId;
+          if (!raw || !String(raw).trim()) youtubeId = null;
+          else {
+            const parsed = parseYouTubeId(raw);
+            if (parsed.error) throw new Error(parsed.error);
+            youtubeId = parsed.id;
+          }
+        }
+        let photos = Array.isArray(input.photos) ? input.photos.slice() : (existing ? (existing.photos || []).slice() : []);
+        photos = photos.filter(p => typeof p === "string" && p.indexOf("data:image/") === 0);
+        if (photos.length > CONFIG.maxPhotos) photos = photos.slice(0, CONFIG.maxPhotos);
+        const prop = {
+          id: existing ? existing.id : uid("p"),
+          title: String(input.title || "").trim(), city: String(input.city || "").trim(),
+          size: String(input.size || "").trim(), type: String(input.type || "").trim(),
+          exchangeWanted: String(input.exchangeWanted || "").trim(),
+          photos, art: input.art || (existing ? existing.art : "house"), youtubeId,
+          minBid: Number(input.minBid), increment: Number(input.increment), auctionEnd: Number(input.auctionEnd),
+          status: existing ? existing.status : "active", winnerBidId: existing ? existing.winnerBidId : null,
+          isExample: existing ? !!existing.isExample : false, createdAt: existing ? existing.createdAt : now()
+        };
+        if (!prop.title || !prop.city || !prop.size || !prop.type) throw new Error("Please fill title, city, size and type.");
+        if (!(prop.minBid > 0) || !(prop.increment > 0)) throw new Error("Minimum bid and increment must be greater than zero.");
+        if (!prop.auctionEnd || Number.isNaN(prop.auctionEnd)) throw new Error("Please set an auction end time.");
+        if (existing) db.properties = db.properties.map(p => p.id === prop.id ? prop : p);
+        else db.properties.push(prop);
+        save(db);
+        return prop;
+      },
+      deleteProperty(id) {
+        requireAdmin();
+        if (!db.properties.find(p => p.id === id)) throw new Error("Property not found.");
+        db.bids = db.bids.filter(b => b.propertyId !== id);
+        db.properties = db.properties.filter(p => p.id !== id);
+        save(db);
+        return true;
+      },
+      closeAuction(id, winnerBidId) {
+        requireAdmin();
+        const prop = db.properties.find(p => p.id === id);
+        if (!prop) throw new Error("Property not found.");
+        if (prop.status === "closed") throw new Error("Auction is already closed.");
+        const bids = api.getBids(id);
+        let winner = null;
+        if (winnerBidId) {
+          winner = bids.find(b => b.id === winnerBidId);
+          if (!winner) throw new Error("Please select a valid bid as the winner.");
+        } else winner = highestBid(id);
+        prop.status = "closed";
+        prop.winnerBidId = winner ? winner.id : null;
+        prop.closedAt = now();
+        save(db);
+        return { property: prop, winner };
+      },
+      getBids(propertyId) {
+        return db.bids.filter(b => b.propertyId === propertyId).sort((a, b) => b.amount - a.amount || b.createdAt - a.createdAt);
+      },
+      placeBid({ propertyId, amount, offer }) {
+        const session = db.session;
+        if (!session.phone) throw new Error("Please log in to place a bid.");
+        const prop = db.properties.find(p => p.id === propertyId);
+        if (!prop) throw new Error("Property not found.");
+        if (prop.status === "closed") throw new Error("This auction is closed.");
+        if (now() >= prop.auctionEnd) throw new Error("This auction has ended.");
+        const value = Number(amount);
+        if (!Number.isFinite(value) || value <= 0) throw new Error("Enter a valid bid amount.");
+        const need = minNextBid(prop);
+        if (value < need) { const err = new Error("LOW_BID"); err.code = "LOW_BID"; err.minNext = need; throw err; }
+        const off = normalizeOffer(offer);
+        if (off.error) throw new Error(off.error);
+        const bid = { id: uid("b"), propertyId, name: session.name, phone: session.phone, amount: value, offer: off.offer, createdAt: now() };
+        db.bids.push(bid); save(db); return bid;
+      },
+      getSession() { return Object.assign({}, db.session); },
+      login({ name, phone }) {
+        const n = String(name || "").trim();
+        const p = normalizePhone(phone);
+        if (n.length < 2) throw new Error("Please enter your name.");
+        if (!p) throw new Error("Enter a valid Pakistani mobile number, e.g. 0345-8514492.");
+        db.session.name = n; db.session.phone = p; save(db); return api.getSession();
+      },
+      logout() { db.session.name = null; db.session.phone = null; db.session.isAdmin = false; save(db); },
+      unlockAdmin(pin) {
+        // Demo-only gate. Live security must use Firebase Auth + ADMIN_UID + Firestore rules.
+        if (String(pin) !== CONFIG.demoAdminPin) throw new Error("Incorrect PIN.");
+        db.session.isAdmin = true; save(db); return true;
+      },
+      lockAdmin() { db.session.isAdmin = false; save(db); },
+      exportResults() {
+        const rows = [["Property ID","Title","City","Size","Type","Status","Min bid","Highest bid","Winner name","Winner phone","Winner amount","Winner offer type","Winner offer city","Winner offer size","Winner offer value","Auction end (PKT)","Closed at (PKT)"]];
+        db.properties.forEach(p => {
+          const top = highestBid(p.id);
+          const winner = p.winnerBidId ? db.bids.find(b => b.id === p.winnerBidId) : (p.status === "closed" ? top : null);
+          const o = winner && winner.offer ? winner.offer : {};
+          rows.push([p.id, p.title, p.city, p.size, p.type, p.status, p.minBid, top ? top.amount : "",
+            winner ? winner.name : "", winner ? winner.phone : "", winner ? winner.amount : "",
+            o.type || "", o.city || "", o.size || "", o.estimatedValue || "",
+            formatDate(p.auctionEnd), p.closedAt ? formatDate(p.closedAt) : ""]);
+        });
+        return rows;
+      },
+      resetDemo() { db = seedData(); save(db); return db; }
+    };
+    return api;
+  })();
+  const Store = DataLayer;
+
+  function demoPhoto(kind, caption) {
+    const c = document.createElement("canvas");
+    c.width = 800; c.height = 480;
+    const g = c.getContext("2d");
+    const sky = g.createLinearGradient(0, 0, 0, 480);
+    if (kind === "interior") { sky.addColorStop(0, "#efe6d6"); sky.addColorStop(1, "#c8b397"); }
+    else { sky.addColorStop(0, "#8eb8d8"); sky.addColorStop(1, "#e8f2fa"); }
+    g.fillStyle = sky; g.fillRect(0, 0, 800, 480);
+    if (kind === "interior") {
+      g.fillStyle = "#0b2545"; g.fillRect(0, 0, 800, 80);
+      g.fillStyle = "#f4c430"; g.fillRect(300, 160, 80, 200);
+      g.fillStyle = "#9ab6d1"; g.fillRect(80, 180, 160, 110); g.fillRect(560, 180, 160, 110);
+      g.fillStyle = "#6b4f32"; g.fillRect(0, 400, 800, 80);
+    } else {
+      g.fillStyle = "#3d4f3a"; g.fillRect(0, 400, 800, 80);
+      g.fillStyle = "#0b2545";
+      g.beginPath(); g.moveTo(400, 70); g.lineTo(700, 250); g.lineTo(100, 250); g.closePath(); g.fill();
+      g.fillStyle = "#f7efe3"; g.fillRect(170, 250, 460, 170);
+      g.fillStyle = "#f4c430"; g.fillRect(360, 300, 80, 120);
+    }
+    g.fillStyle = "rgba(11,37,69,0.82)"; g.fillRect(20, 420, 280, 40);
+    g.fillStyle = "#f4c430"; g.font = "bold 22px Segoe UI, Arial";
+    g.fillText(caption || "Example photo", 32, 447);
+    return c.toDataURL("image/jpeg", 0.62);
+  }
+  function parseYouTubeId(input) {
+    const raw = String(input || "").trim();
+    if (!raw) return { id: null };
+    if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return { id: raw };
+    let urlStr = raw;
+    if (!/^https?:\/\//i.test(urlStr)) urlStr = "https://" + urlStr;
+    let u;
+    try { u = new URL(urlStr); } catch (e) { return { error: "Only YouTube links are allowed." }; }
+    const host = u.hostname.replace(/^www\./i, "").toLowerCase();
+    const okHost = host === "youtu.be" || host === "youtube.com" || host === "m.youtube.com" ||
+      host === "music.youtube.com" || host === "youtube-nocookie.com" || host.endsWith(".youtube.com");
+    if (!okHost) return { error: "Only YouTube links are allowed." };
+    let id = null;
+    if (host === "youtu.be") id = u.pathname.split("/").filter(Boolean)[0] || "";
+    else if (u.searchParams.get("v")) id = u.searchParams.get("v");
+    else {
+      const parts = u.pathname.split("/").filter(Boolean);
+      const keys = ["embed", "shorts", "live", "v", "watch"];
+      const idx = parts.findIndex(p => keys.indexOf(p.toLowerCase()) !== -1);
+      if (idx >= 0 && parts[idx + 1]) id = parts[idx + 1];
+    }
+    if (id) id = String(id).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 11);
+    if (!id || id.length !== 11) return { error: "Could not read a YouTube video from that link." };
+    return { id };
+  }
+  function youtubeEmbedUrl(id) { return "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(id); }
+  function normalizeOffer(offer) {
+    const o = offer || {};
+    const type = String(o.type || "").trim();
+    const city = String(o.city || o.location || "").trim();
+    const size = String(o.size || "").trim();
+    const description = String(o.description || "").trim();
+    const estimatedValue = Number(o.estimatedValue);
+    if (!type) return { error: "Please choose the type of property you are offering." };
+    if (city.length < 2) return { error: "Please enter the city or location of your property." };
+    if (!size) return { error: "Please enter the size of your property." };
+    if (description.length < 8) return { error: "Please add a short description of your property (at least 8 characters)." };
+    if (!Number.isFinite(estimatedValue) || estimatedValue <= 0) return { error: "Please enter an estimated value for your property." };
+    return { offer: { type, city, size, description, estimatedValue } };
+  }
+  function offerSummary(offer) { return offer ? (offer.size + " " + offer.type + " in " + offer.city) : ""; }
+  function normalizePhone(input) {
+    const digits = String(input || "").replace(/\D/g, "");
+    let p = digits;
+    if (p.startsWith("92") && p.length === 12) p = "0" + p.slice(2);
+    return /^03\d{9}$/.test(p) ? p : null;
+  }
+  function maskPhone(phone) {
+    const p = normalizePhone(phone) || String(phone || "").replace(/\D/g, "");
+    return p.length < 4 ? "03xx-xxx-xxxx" : "03xx-xxx-" + p.slice(-4);
+  }
+  function formatPKR(n) {
+    const s = String(Math.round(Number(n) || 0));
+    if (s.length <= 3) return "PKR " + s;
+    const last3 = s.slice(-3);
+    let rest = s.slice(0, -3);
+    const parts = [];
+    while (rest.length > 2) { parts.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
+    if (rest) parts.unshift(rest);
+    return "PKR " + parts.join(",") + "," + last3;
+  }
+  function formatDate(ts) {
+    return new Date(ts).toLocaleString("en-PK", {
+      timeZone: CONFIG.tz, day: "2-digit", month: "short", year: "numeric",
+      hour: "numeric", minute: "2-digit", hour12: true
+    }) + " PKT";
+  }
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+  function remainingParts(end) {
+    let ms = end - Date.now();
+    const ended = ms <= 0;
+    if (ms < 0) ms = 0;
+    const sec = Math.floor(ms / 1000) % 60;
+    const min = Math.floor(ms / 60000) % 60;
+    const hr = Math.floor(ms / 3600000) % 24;
+    const day = Math.floor(ms / 86400000);
+    const pad = n => String(n).padStart(2, "0");
+    const label = ended ? "Ended" : (day > 0 ? pad(day) + "d " + pad(hr) + "h " + pad(min) + "m " + pad(sec) + "s" : pad(hr) + "h " + pad(min) + "m " + pad(sec) + "s");
+    return { ended, ms, day, hr, min, sec, label, soon: !ended && ms < 12 * 3600000 };
+  }
+  function statusOf(prop) {
+    if (prop.status === "closed") return "closed";
+    if (Date.now() >= prop.auctionEnd) return "ended";
+    if (prop.auctionEnd - Date.now() < 12 * 3600000) return "soon";
+    return "live";
+  }
+  function statusBadge(prop) {
+    const map = { live: ["live","Live"], soon: ["soon","Ending soon"], ended: ["ended","Ended"], closed: ["closed","Closed"] };
+    const [cls, text] = map[statusOf(prop)];
+    return '<span class="badge ' + cls + '">' + text + "</span>";
+  }
+  function exampleBadge(prop) { return prop.isExample ? '<span class="badge example">Example data</span>' : ""; }
+  function photoArt(art, uid) {
+    const gid = "g" + String(uid || art).replace(/[^a-zA-Z0-9_-]/g, "") + "-" + art;
+    const scenes = {
+      house: { sky:["#7fb3d8","#e9f2fa"], body:"#f7efe3", roof:"#0b2545", acc:"#f4c430" },
+      plot: { sky:["#9ec5e0","#eef6fb"], body:"#c8d9a8", roof:"#6b8f3a", acc:"#f4c430" },
+      farm: { sky:["#f2c38a","#fde9c8"], body:"#f3efe6", roof:"#14325a", acc:"#f4c430" },
+      shop: { sky:["#8aa4c4","#dce6f1"], body:"#efe7d8", roof:"#0b2545", acc:"#f4c430" }
+    };
+    const s = scenes[art] || scenes.house;
+    const extra = art === "plot"
+      ? '<rect x="0" y="148" width="400" height="92" fill="'+s.body+'"/><path d="M0 148 L80 130 L200 150 L320 122 L400 145 L400 148 Z" fill="#b7cc8e"/><path d="M70 148 V100 H90 V148 M70 100 H90 M180 150 V112 H200 V150 M180 112 H200 M300 140 V96 H320 V140 M300 96 H320" stroke="'+s.roof+'" stroke-width="5" fill="none"/><rect x="230" y="86" width="78" height="36" rx="3" fill="'+s.roof+'"/><rect x="230" y="118" width="8" height="28" fill="'+s.roof+'"/><text x="269" y="109" text-anchor="middle" font-size="11" font-family="Segoe UI,Arial,sans-serif" fill="'+s.acc+'" font-weight="700">PLOT</text>'
+      : art === "farm"
+      ? '<polygon points="60,180 120,90 180,180" fill="'+s.body+'"/><polygon points="60,90 120,40 180,90" fill="'+s.roof+'"/><rect x="200" y="120" width="160" height="60" fill="'+s.body+'"/><polygon points="190,120 280,70 370,120" fill="'+s.roof+'"/><rect x="250" y="140" width="28" height="40" fill="'+s.acc+'"/>'
+      : art === "shop"
+      ? '<rect x="50" y="90" width="300" height="110" fill="'+s.body+'"/><rect x="50" y="70" width="300" height="24" fill="'+s.roof+'"/><rect x="80" y="120" width="70" height="50" fill="#9ab6d1"/><rect x="170" y="120" width="70" height="50" fill="#9ab6d1"/><rect x="250" y="130" width="40" height="70" fill="'+s.acc+'"/>'
+      : '<polygon points="200,40 360,150 40,150" fill="'+s.roof+'"/><rect x="80" y="150" width="240" height="80" fill="'+s.body+'"/><rect x="170" y="170" width="50" height="60" fill="'+s.acc+'"/><rect x="100" y="170" width="44" height="36" fill="#9ab6d1"/><rect x="246" y="170" width="44" height="36" fill="#9ab6d1"/>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+s.sky[0]+'"/><stop offset="1" stop-color="'+s.sky[1]+'"/></linearGradient></defs><rect width="400" height="240" fill="url(#'+gid+')"/><rect y="200" width="400" height="40" fill="#3d4f3a" opacity=".7"/>'+extra+'</svg>';
+  }
+  function coverMedia(prop) {
+    const photos = (prop.photos || []).filter(p => String(p).indexOf("data:image/") === 0);
+    return photos[0] ? '<img src="'+photos[0]+'" alt="">' : photoArt(prop.art || "house", prop.id);
+  }
+  function photoHTML(prop, extraClass) {
+    const end = remainingParts(prop.auctionEnd);
+    const videoBadge = prop.youtubeId ? '<span class="badge video">Video</span>' : "";
+    return '<div class="photo '+(extraClass||"")+'">'+coverMedia(prop)+
+      '<div class="badges">'+statusBadge(prop)+exampleBadge(prop)+videoBadge+'</div>'+
+      '<div class="countdown-chip" data-testid="countdown" data-end="'+prop.auctionEnd+'">⏱ '+escapeHtml(end.label)+"</div></div>";
+  }
+  function galleryHTML(prop) {
+    const photos = (prop.photos || []).filter(p => String(p).indexOf("data:image/") === 0);
+    const slides = photos.length
+      ? photos.map((src, i) => '<div class="gallery-slide" data-i="'+i+'"><img src="'+src+'" alt="Photo '+(i+1)+'"></div>')
+      : ['<div class="gallery-slide">'+photoArt(prop.art || "house", prop.id)+"</div>"];
+    const end = remainingParts(prop.auctionEnd);
+    const videoBadge = prop.youtubeId ? '<span class="badge video">Video</span>' : "";
+    const dots = slides.length > 1 ? '<div class="gallery-dots" data-testid="gallery-dots">'+slides.map((_,i)=>'<span class="'+(i===0?"on":"")+'"></span>').join("")+"</div>" : "";
+    return '<div class="gallery" data-testid="gallery"><div class="gallery-track">'+slides.join("")+"</div>"+
+      '<div class="badges">'+statusBadge(prop)+exampleBadge(prop)+videoBadge+'</div>'+
+      '<div class="countdown-chip" data-testid="countdown" data-end="'+prop.auctionEnd+'">⏱ '+escapeHtml(end.label)+"</div>"+dots+"</div>";
+  }
+
+  const App = { returnTo: null, bidFlash: null, tick: null, toastTimer: null, photos: [] };
+  function route() {
+    const hash = (location.hash || "#/").replace(/^#/, "") || "/";
+    const parts = hash.split("/").filter(Boolean);
+    if (parts[0] === "property" && parts[1]) return { name: "detail", id: parts[1] };
+    if (parts[0] === "login") return { name: "login" };
+    if (parts[0] === "admin" && parts[1] === "new") return { name: "admin-form", id: null };
+    if (parts[0] === "admin" && parts[1] === "edit" && parts[2]) return { name: "admin-form", id: parts[2] };
+    if (parts[0] === "admin" && parts[1] === "bids" && parts[2]) return { name: "admin-bids", id: parts[2] };
+    if (parts[0] === "admin") return { name: "admin" };
+    return { name: "home" };
+  }
+  function go(path) { location.hash = path; }
+  function toast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(App.toastTimer);
+    App.toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+  }
+  function setNav(active) {
+    document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.getAttribute("data-nav") === active));
+  }
+  function startTick() {
+    clearInterval(App.tick);
+    App.tick = setInterval(() => {
+      document.querySelectorAll("[data-testid='countdown'][data-end]").forEach(el => {
+        el.textContent = "⏱ " + remainingParts(Number(el.getAttribute("data-end"))).label;
+      });
+    }, 1000);
+  }
+  function bindBack() {
+    document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => go(b.getAttribute("data-go"))));
+  }
+  function render() {
+    const r = route();
+    const main = document.getElementById("main");
+    if (r.name === "home") { setNav("home"); main.innerHTML = renderHome(); }
+    else if (r.name === "detail") { setNav("home"); main.innerHTML = renderDetail(r.id); bindDetail(r.id); }
+    else if (r.name === "login") { setNav("login"); main.innerHTML = renderLogin(); bindLogin(); }
+    else if (r.name === "admin") { setNav("admin"); main.innerHTML = renderAdmin(); bindAdmin(); }
+    else if (r.name === "admin-form") { setNav("admin"); main.innerHTML = renderAdminForm(r.id); bindAdminForm(r.id); }
+    else if (r.name === "admin-bids") { setNav("admin"); main.innerHTML = renderAdminBids(r.id); bindAdminBids(r.id); }
+    startTick();
+    window.scrollTo(0, 0);
+  }
+  function renderHome() {
+    const list = Store.getProperties();
+    const active = list.filter(p => p.status !== "closed" && Date.now() < p.auctionEnd);
+    const other = list.filter(p => !active.includes(p));
+    const card = (p) => {
+      const high = Store.currentHighest(p);
+      return '<a class="card property-card" data-testid="property-card" href="#/property/'+encodeURIComponent(p.id)+'">'+
+        photoHTML(p)+'<div class="card-body"><h2>'+escapeHtml(p.title)+'</h2>'+
+        '<div class="meta">'+escapeHtml(p.city)+' · '+escapeHtml(p.size)+' · '+escapeHtml(p.type)+'</div>'+
+        (p.exchangeWanted ? '<div class="wanted"><strong>Exchange wanted:</strong> '+escapeHtml(p.exchangeWanted)+'</div>' : '')+
+        '<div class="bid-row"><div class="bid-stat"><span>Minimum bid</span><b>'+formatPKR(p.minBid)+'</b></div>'+
+        '<div class="bid-stat current"><span>Current highest</span><b data-testid="highest">'+formatPKR(high)+'</b></div></div></div></a>';
+    };
+    return '<p class="page-sub">Weekly property exchange boli</p><h2 class="page-title">Live auctions</h2><div class="gold-rule"></div>'+
+      (active.length ? active.map(card).join("") : '<div class="card"><div class="empty">No live auctions right now.</div></div>')+
+      (other.length ? '<h2 class="section-h">Closed &amp; ended</h2>'+other.map(card).join("") : "")+
+      '<p class="footer-note">Only the company owner lists properties. You can bid and offer your own property in exchange. Owner names, CNIC and documents are never shown here. Contact '+escapeHtml(CONFIG.phone)+' · '+escapeHtml(CONFIG.company)+'</p>';
+  }
+  function readOfferFromForm() {
+    return {
+      type: (document.getElementById("offer-type") || {}).value,
+      city: (document.getElementById("offer-city") || {}).value,
+      size: (document.getElementById("offer-size") || {}).value,
+      description: (document.getElementById("offer-desc") || {}).value,
+      estimatedValue: (document.getElementById("offer-value") || {}).value
+    };
+  }
+  function renderDetail(id) {
+    const p = Store.getProperty(id);
+    if (!p) return '<button class="back" type="button" data-go="#/">‹  Back</button><div class="empty">Property not found.</div>';
+    const bids = Store.getBids(id);
+    const high = Store.currentHighest(p);
+    const need = Store.minNextBid(p);
+    const session = Store.getSession();
+    const st = statusOf(p);
+    const ended = st === "ended" || st === "closed";
+    const winner = p.winnerBidId ? bids.find(b => b.id === p.winnerBidId) : null;
+    const hist = bids.length ? '<ul class="history" data-testid="bid-history">'+bids.map((b,i) =>
+      '<li class="'+(i===0?"top":"")+'"><div><span class="who">'+escapeHtml(maskPhone(b.phone))+'</span>'+
+      (b.offer ? '<span class="offer" data-testid="offer-summary">Offers: '+escapeHtml(offerSummary(b.offer))+"</span>" : "")+
+      '<span class="when">'+escapeHtml(formatDate(b.createdAt))+(b.name === "Example bidder" ? " · example" : "")+"</span></div>"+
+      '<div class="amt">'+formatPKR(b.amount)+"</div></li>"
+    ).join("")+"</ul>" : '<div class="empty">No bids yet. Be the first.</div>';
+    const flash = App.bidFlash || {};
+    const keep = flash.keep || {};
+    let bidBox = "";
+    if (st === "closed") {
+      bidBox = '<div class="winner-banner" data-testid="winner"><span>Auction closed · Winner</span><strong>'+
+        (winner ? escapeHtml(maskPhone(winner.phone))+" · "+formatPKR(winner.amount) : "No bids were placed")+"</strong>"+
+        (winner && winner.offer ? "<em>Offered: "+escapeHtml(offerSummary(winner.offer))+"</em>" : "")+"</div>";
+    } else if (ended) {
+      bidBox = '<div class="notice">Bidding has ended. The admin will close this auction and confirm the winner.</div>';
+    } else {
+      bidBox = '<div class="bid-box" data-testid="bid-box"><h3>Place a bid</h3>'+
+        '<div class="min-next">Enter at least <b>'+formatPKR(need)+'</b> (current highest + minimum increment of '+formatPKR(p.increment)+'). Also describe the property you offer in exchange.</div>'+
+        (flash.error ? '<div class="error-box" data-testid="bid-error">'+escapeHtml(flash.error)+"</div>" : "")+
+        (flash.ok ? '<div class="ok-box" data-testid="bid-success">'+escapeHtml(flash.ok)+"</div>" : "")+
+        '<form id="bid-form">'+
+        '<div class="form-group"><label for="bid-amount">Your bid (PKR)</label>'+
+        '<input id="bid-amount" data-testid="bid-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="'+need+'" value="'+escapeHtml(keep.amount || "")+'" /></div>'+
+        '<div class="offer-legend">Your property offered in exchange</div>'+
+        '<div class="form-group"><label for="offer-type">Type</label><select id="offer-type" data-testid="offer-type">'+
+          PROPERTY_TYPES.map(t => '<option'+(keep.type===t?" selected":"")+'>'+t+"</option>").join("")+"</select></div>"+
+        '<div class="form-group"><label for="offer-city">City / location</label>'+
+        '<input id="offer-city" data-testid="offer-city" type="text" placeholder="e.g. Gulberg, Lahore" value="'+escapeHtml(keep.city || "")+'" /></div>'+
+        '<div class="form-group"><label for="offer-size">Size</label>'+
+        '<input id="offer-size" data-testid="offer-size" type="text" placeholder="e.g. 5 Marla" value="'+escapeHtml(keep.size || "")+'" /></div>'+
+        '<div class="form-group"><label for="offer-desc">Short description</label>'+
+        '<textarea id="offer-desc" data-testid="offer-desc" placeholder="A short description of your property">'+escapeHtml(keep.description || "")+"</textarea></div>"+
+        '<div class="form-group"><label for="offer-value">Estimated value (PKR)</label>'+
+        '<input id="offer-value" data-testid="offer-value" type="number" min="1" inputmode="numeric" value="'+escapeHtml(keep.estimatedValue || "")+'" /></div>'+
+        (session.phone
+          ? '<button class="btn" data-testid="bid-submit" type="submit">Place bid</button><p class="hint">Bidding as '+escapeHtml(session.name)+' · '+escapeHtml(maskPhone(session.phone))+'. You cannot list a new auction — only the owner can.</p>'
+          : '<button class="btn" data-testid="bid-login" type="button" id="bid-login">Log in to place a bid</button><p class="hint">Demo login uses your name and mobile number. No OTP is sent.</p>')+
+        "</form></div>";
+    }
+    App.bidFlash = null;
+    const video = p.youtubeId
+      ? '<h3 class="section-h">Video</h3><div class="video-wrap" data-testid="youtube-embed"><iframe src="'+youtubeEmbedUrl(p.youtubeId)+'" title="Property video" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>'
+      : "";
+    return '<button class="back" type="button" data-go="#/">‹  All auctions</button>'+
+      '<div class="card">'+galleryHTML(p)+'<div class="card-body">'+
+      "<h2 class='page-title' style='margin:0'>"+escapeHtml(p.title)+"</h2>"+
+      '<div class="meta">Ends '+escapeHtml(formatDate(p.auctionEnd))+"</div>"+
+      '<div class="detail-grid">'+
+      '<div class="kv"><span>City</span><b>'+escapeHtml(p.city)+"</b></div>"+
+      '<div class="kv"><span>Size</span><b>'+escapeHtml(p.size)+"</b></div>"+
+      '<div class="kv"><span>Type</span><b>'+escapeHtml(p.type)+"</b></div>"+
+      '<div class="kv"><span>Minimum bid</span><b>'+formatPKR(p.minBid)+"</b></div>"+
+      '<div class="kv"><span>Current highest</span><b data-testid="highest">'+formatPKR(high)+"</b></div>"+
+      '<div class="kv"><span>Min. increment</span><b>'+formatPKR(p.increment)+"</b></div></div>"+
+      (p.exchangeWanted ? '<div class="wanted"><strong>Exchange wanted:</strong> '+escapeHtml(p.exchangeWanted)+"</div>" : "")+
+      "</div></div>"+video+bidBox+
+      '<h3 class="section-h">Bid history</h3><div class="card"><div class="card-body">'+hist+"</div></div>"+
+      '<p class="footer-note">Owner name, CNIC and documents are not shown on this public auction app.</p>';
+  }
+  function bindDetail(id) {
+    bindBack();
+    const track = document.querySelector(".gallery-track");
+    const dots = document.querySelectorAll(".gallery-dots span");
+    if (track && dots.length) {
+      track.addEventListener("scroll", () => {
+        const i = Math.round(track.scrollLeft / Math.max(track.clientWidth, 1));
+        dots.forEach((d, n) => d.classList.toggle("on", n === i));
+      }, { passive: true });
+    }
+    const loginBtn = document.getElementById("bid-login");
+    if (loginBtn) loginBtn.addEventListener("click", () => { App.returnTo = "#/property/"+id; go("#/login"); });
+    const form = document.getElementById("bid-form");
+    if (!form) return;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const amount = document.getElementById("bid-amount").value;
+      const offer = readOfferFromForm();
+      try {
+        Store.placeBid({ propertyId: id, amount, offer });
+        App.bidFlash = { ok: "Bid placed. You are the current highest bidder." };
+        toast("Bid placed successfully.");
+        render();
+      } catch (err) {
+        App.bidFlash = {
+          error: err.code === "LOW_BID"
+            ? "Bid too low. Enter at least " + formatPKR(err.minNext) + " (current highest + minimum increment)."
+            : err.message,
+          keep: Object.assign({ amount }, offer)
+        };
+        render();
+      }
+    });
+  }
+  function renderLogin() {
+    const s = Store.getSession();
+    if (s.phone) {
+      return '<h2 class="page-title">Your account</h2><div class="gold-rule"></div>'+
+        '<div class="user-chip"><div><b data-testid="account-name">'+escapeHtml(s.name)+'</b><span data-testid="account-phone">'+escapeHtml(maskPhone(s.phone))+"</span></div>"+
+        '<button class="btn sm ghost" type="button" id="logout-btn" data-testid="logout">Log out</button></div>'+
+        '<p class="hint">This is a demo preview login. You can place bids and offer your property in exchange. You cannot add an auction listing — only the owner can. No password or OTP is used.</p>';
+    }
+    return '<h2 class="page-title">Log in to bid</h2><div class="gold-rule"></div>'+
+      '<div class="notice">Demo login only — enter your name and mobile number. <strong>No OTP is sent.</strong> After login you can bid and describe the property you offer in exchange. Only the owner can add auction listings.</div>'+
+      '<form id="login-form" class="card" style="padding:14px">'+
+      '<div class="form-group"><label for="login-name">Full name</label>'+
+      '<input id="login-name" data-testid="login-name" type="text" autocomplete="name" placeholder="Your name" required /></div>'+
+      '<div class="form-group"><label for="login-phone">Mobile number</label>'+
+      '<input id="login-phone" data-testid="login-phone" type="tel" autocomplete="tel" placeholder="0345-8514492" required />'+
+      '<p class="hint">Pakistan mobile, 11 digits starting with 03.</p></div>'+
+      '<div id="login-error" class="error-box hidden" data-testid="login-error"></div>'+
+      '<button class="btn" data-testid="login-submit" type="submit">Continue</button></form>';
+  }
+  function bindLogin() {
+    const out = document.getElementById("logout-btn");
+    if (out) out.addEventListener("click", () => { Store.logout(); toast("Logged out."); render(); });
+    const form = document.getElementById("login-form");
+    if (!form) return;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById("login-error");
+      try {
+        Store.login({ name: document.getElementById("login-name").value, phone: document.getElementById("login-phone").value });
+        toast("Logged in. You can place bids now.");
+        const next = App.returnTo || "#/";
+        App.returnTo = null;
+        go(next);
+      } catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+    });
+  }
+
+  function renderAdmin() {
+    const s = Store.getSession();
+    if (!s.isAdmin) {
+      return '<h2 class="page-title">Admin panel</h2><div class="gold-rule"></div>'+
+        '<div class="notice">Demo only. Use PIN <strong>1234</strong> to open the single-owner admin tools. This PIN is for the preview, not for a live site. On a live site, only your Firebase account (one admin UID) can add, edit or delete properties.</div>'+
+        '<form id="pin-form" class="card" style="padding:14px">'+
+        '<div class="form-group"><label for="admin-pin">Admin PIN</label>'+
+        '<input id="admin-pin" data-testid="admin-pin" type="password" inputmode="numeric" maxlength="8" placeholder="1234" /></div>'+
+        '<div id="pin-error" class="error-box hidden" data-testid="pin-error"></div>'+
+        '<button class="btn secondary" data-testid="admin-unlock" type="submit">Unlock</button></form>';
+    }
+    const list = Store.getProperties();
+    const items = list.map(p => {
+      const top = Store.highestBid(p.id);
+      const st = statusOf(p);
+      const nBids = Store.getBids(p.id).length;
+      return '<div class="card admin-list" data-testid="admin-property" data-id="'+p.id+'"><div class="card-body">'+
+        '<div class="row"><div><h3>'+escapeHtml(p.title)+"</h3>"+
+        '<div class="meta">'+escapeHtml(p.city)+' · '+escapeHtml(p.size)+' · '+st+
+        (top ? " · high "+formatPKR(top.amount) : "")+" · "+nBids+" bid"+(nBids===1?"":"s")+
+        (p.youtubeId ? " · video" : "")+"</div></div>"+statusBadge(p)+"</div>"+
+        '<div class="admin-actions">'+
+        '<button class="btn sm ghost" type="button" data-edit="'+p.id+'">Edit</button>'+
+        '<button class="btn sm ghost" type="button" data-testid="view-bids" data-bids="'+p.id+'">Bids</button>'+
+        (p.status !== "closed"
+          ? '<button class="btn sm secondary" type="button" data-testid="close-auction" data-close="'+p.id+'">Close</button>'
+          : '<span class="hint" data-testid="winner">Winner: '+(top ? escapeHtml(maskPhone(top.phone))+" · "+formatPKR(top.amount) : "No bids")+"</span>")+
+        '<button class="btn sm danger" type="button" data-testid="delete-property" data-delete="'+p.id+'">Delete</button>'+
+        "</div></div></div>";
+    }).join("");
+    return '<h2 class="page-title">Admin panel</h2><div class="gold-rule"></div>'+
+      '<div class="notice">You are the only admin in this demo. Only you can add, edit or delete listings, attach photos and a YouTube video, and confirm a winner. Other people can only bid.</div>'+
+      '<div class="btn-row"><button class="btn" type="button" data-testid="admin-add" id="admin-add">Add property</button>'+
+      '<button class="btn secondary" type="button" data-testid="export-csv" id="export-csv">Export CSV</button></div>'+
+      '<div style="height:12px"></div>'+items+
+      '<div class="btn-row" style="margin-top:8px"><button class="btn sm ghost" type="button" id="reset-demo" data-testid="reset-demo">Reset demo data</button>'+
+      '<button class="btn sm ghost" type="button" id="lock-admin">Lock admin</button></div>';
+  }
+  function bindAdmin() {
+    const pinForm = document.getElementById("pin-form");
+    if (pinForm) {
+      pinForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const errEl = document.getElementById("pin-error");
+        try { Store.unlockAdmin(document.getElementById("admin-pin").value); toast("Admin unlocked (demo only)."); render(); }
+        catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+      });
+      return;
+    }
+    document.getElementById("admin-add").addEventListener("click", () => go("#/admin/new"));
+    document.getElementById("export-csv").addEventListener("click", exportCsv);
+    document.getElementById("lock-admin").addEventListener("click", () => { Store.lockAdmin(); toast("Admin locked."); render(); });
+    document.getElementById("reset-demo").addEventListener("click", () => {
+      if (confirm("Reset all demo properties and bids? This only affects this browser.")) {
+        Store.resetDemo(); Store.unlockAdmin(CONFIG.demoAdminPin); toast("Demo data reset."); render();
+      }
+    });
+    document.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => go("#/admin/edit/"+b.getAttribute("data-edit"))));
+    document.querySelectorAll("[data-bids]").forEach(b => b.addEventListener("click", () => go("#/admin/bids/"+b.getAttribute("data-bids"))));
+    document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => go("#/admin/bids/"+b.getAttribute("data-close"))));
+    document.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", () => {
+      const id = b.getAttribute("data-delete");
+      const p = Store.getProperty(id);
+      if (!confirm("Delete “"+(p && p.title)+"” and all of its bids? This cannot be undone in this preview.")) return;
+      try { Store.deleteProperty(id); toast("Property deleted."); render(); }
+      catch (err) { toast(err.message); }
+    }));
+  }
+  function toLocalInput(ts) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: CONFIG.tz, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false
+    }).formatToParts(new Date(ts));
+    const get = t => parts.find(p => p.type === t).value;
+    let hour = get("hour"); if (hour === "24") hour = "00";
+    return get("year")+"-"+get("month")+"-"+get("day")+"T"+hour+":"+get("minute");
+  }
+  function fromLocalInput(value) {
+    if (!value) return NaN;
+    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!m) return new Date(value).getTime();
+    return new Date(m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":00+05:00").getTime();
+  }
+  function thumbsHTML(photos) {
+    if (!photos.length) return '<div class="hint" id="photo-empty">No photos yet.</div><div class="thumbs" id="photo-thumbs" data-testid="photo-thumbs"></div>';
+    return '<div class="thumbs" id="photo-thumbs" data-testid="photo-thumbs">'+photos.map((src,i) =>
+      '<div class="thumb"><img src="'+src+'" alt=""><button type="button" data-remove-photo="'+i+'" aria-label="Remove photo">×</button></div>'
+    ).join("")+"</div>";
+  }
+  function renderAdminForm(id) {
+    const s = Store.getSession();
+    if (!s.isAdmin) return renderAdmin();
+    const p = id ? Store.getProperty(id) : null;
+    if (id && !p) return '<button class="back" type="button" data-go="#/admin">‹  Back</button><div class="empty">Property not found.</div>';
+    const arts = ["house","plot","shop","farm"];
+    const yt = p && p.youtubeId ? "https://youtu.be/"+p.youtubeId : "";
+    App.photos = p && p.photos ? p.photos.slice() : [];
+    return '<button class="back" type="button" data-go="#/admin">‹  Admin</button>'+
+      '<h2 class="page-title">'+(p ? "Edit property" : "Add property")+'</h2><div class="gold-rule"></div>'+
+      '<form id="prop-form" class="card" style="padding:14px">'+
+      '<div class="form-group"><label for="f-title">Title</label><input id="f-title" data-testid="f-title" type="text" required value="'+escapeHtml(p?p.title:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-city">City</label><input id="f-city" data-testid="f-city" type="text" required value="'+escapeHtml(p?p.city:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-size">Size</label><input id="f-size" data-testid="f-size" type="text" required placeholder="10 Marla" value="'+escapeHtml(p?p.size:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-type">Type</label><select id="f-type" data-testid="f-type">'+
+        PROPERTY_TYPES.map(t => '<option'+(p && p.type===t?" selected":"")+'>'+t+"</option>").join("")+"</select></div>"+
+      '<div class="form-group"><label for="f-wanted">Exchange wanted</label><textarea id="f-wanted" data-testid="f-wanted">'+escapeHtml(p?p.exchangeWanted:"")+"</textarea></div>"+
+      '<div class="form-group"><label for="f-min">Minimum bid (PKR)</label><input id="f-min" data-testid="f-min" type="number" min="1" required value="'+(p?p.minBid:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-inc">Minimum increment (PKR)</label><input id="f-inc" data-testid="f-inc" type="number" min="1" required value="'+(p?p.increment:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-end">Auction end time (Pakistan time)</label>'+
+      '<input id="f-end" data-testid="f-end" type="datetime-local" required value="'+(p?toLocalInput(p.auctionEnd):"")+'" /></div>'+
+      '<div class="form-group"><label for="f-art">Placeholder style (used if there is no photo)</label><select id="f-art">'+
+        arts.map(a => '<option value="'+a+'"'+(p && p.art===a?" selected":"")+'>'+a+"</option>").join("")+"</select></div>"+
+      '<div class="form-group"><label for="f-photos">Photos (you can add more than one)</label>'+
+      '<input id="f-photos" data-testid="f-photos" type="file" accept="image/*" multiple />'+
+      '<p class="hint">Up to '+CONFIG.maxPhotos+' photos. They are resized and stored only in this browser for the demo.</p>'+
+      '<div id="thumbs-wrap">'+thumbsHTML(App.photos)+"</div></div>"+
+      '<div class="form-group"><label for="f-youtube">YouTube video (optional)</label>'+
+      '<input id="f-youtube" data-testid="f-youtube" type="url" inputmode="url" placeholder="https://youtu.be/… or youtube.com/watch?v=…" value="'+escapeHtml(yt)+'" />'+
+      '<p class="hint">Paste a YouTube watch, youtu.be, Shorts or embed link. Other sites are not allowed.</p></div>'+
+      '<div id="form-error" class="error-box hidden" data-testid="form-error"></div>'+
+      '<button class="btn" data-testid="save-property" type="submit">'+(p?"Save changes":"Add property")+"</button></form>";
+  }
+  function bindAdminForm(id) {
+    bindBack();
+    if (!Store.getSession().isAdmin) { bindAdmin(); return; }
+    const refreshThumbs = () => {
+      document.getElementById("thumbs-wrap").innerHTML = thumbsHTML(App.photos);
+      document.querySelectorAll("[data-remove-photo]").forEach(btn => {
+        btn.addEventListener("click", () => { App.photos.splice(Number(btn.getAttribute("data-remove-photo")), 1); refreshThumbs(); });
+      });
+    };
+    refreshThumbs();
+    document.getElementById("f-photos").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []);
+      for (const file of files) {
+        if (App.photos.length >= CONFIG.maxPhotos) { toast("Maximum "+CONFIG.maxPhotos+" photos."); break; }
+        try { App.photos.push(await compressImage(file)); }
+        catch (err) { toast("Could not read that image."); }
+      }
+      e.target.value = "";
+      refreshThumbs();
+    });
+    document.getElementById("prop-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById("form-error");
+      try {
+        const saved = Store.saveProperty({
+          id: id || undefined,
+          title: document.getElementById("f-title").value,
+          city: document.getElementById("f-city").value,
+          size: document.getElementById("f-size").value,
+          type: document.getElementById("f-type").value,
+          exchangeWanted: document.getElementById("f-wanted").value,
+          minBid: document.getElementById("f-min").value,
+          increment: document.getElementById("f-inc").value,
+          auctionEnd: fromLocalInput(document.getElementById("f-end").value),
+          art: document.getElementById("f-art").value,
+          photos: App.photos.slice(),
+          youtubeUrl: document.getElementById("f-youtube").value
+        });
+        toast(id ? "Property updated." : "Property added.");
+        go("#/property/"+saved.id);
+      } catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+    });
+  }
+  function renderAdminBids(id) {
+    const s = Store.getSession();
+    if (!s.isAdmin) return renderAdmin();
+    const p = Store.getProperty(id);
+    if (!p) return '<button class="back" type="button" data-go="#/admin">‹  Back</button><div class="empty">Property not found.</div>';
+    const bids = Store.getBids(id);
+    const closed = p.status === "closed";
+    const winner = p.winnerBidId ? bids.find(b => b.id === p.winnerBidId) : null;
+    const list = bids.length ? bids.map((b, i) => {
+      const o = b.offer || {};
+      return '<div class="admin-bid" data-testid="admin-bid"><label class="pick">'+
+        (closed ? "" : '<input type="radio" name="winner" value="'+b.id+'" data-testid="winner-pick" '+(i===0?"checked":"")+' />')+
+        '<div><b>'+formatPKR(b.amount)+(i===0?" · highest":"")+"</b>"+
+        '<div class="full" data-testid="admin-bid-full">'+
+        escapeHtml(b.name)+" · "+escapeHtml(b.phone)+"<br>"+
+        (b.offer ? "Offers: "+escapeHtml(o.type)+", "+escapeHtml(o.size)+", "+escapeHtml(o.city)+" · Est. "+formatPKR(o.estimatedValue)+"<br>"+escapeHtml(o.description) : "No exchange property details")+
+        "<br>"+escapeHtml(formatDate(b.createdAt))+"</div></div></label></div>";
+    }).join("") : '<div class="empty">No bids yet.</div>';
+    return '<button class="back" type="button" data-go="#/admin">‹  Admin</button>'+
+      '<h2 class="page-title">Bids · '+escapeHtml(p.title)+'</h2><div class="gold-rule"></div>'+
+      (closed
+        ? '<div class="winner-banner" data-testid="winner"><span>Confirmed winner</span><strong>'+
+          (winner ? escapeHtml(winner.name)+" · "+escapeHtml(winner.phone)+" · "+formatPKR(winner.amount) : "No bids")+"</strong>"+
+          (winner && winner.offer ? "<em>"+escapeHtml(offerSummary(winner.offer))+"</em>" : "")+"</div>"
+        : '<div class="notice">The highest bid is selected by default. Confirm the winner, or pick another bid first.</div>')+
+      '<form id="close-form" class="card" style="padding:14px" data-testid="close-form">'+list+
+      (closed ? "" : '<button class="btn secondary" style="margin-top:12px" type="submit" data-testid="confirm-winner">'+(bids.length?"Confirm winner & close auction":"Close auction with no bids")+"</button>")+
+      "</form>";
+  }
+  function bindAdminBids(id) {
+    bindBack();
+    if (!Store.getSession().isAdmin) { bindAdmin(); return; }
+    const form = document.getElementById("close-form");
+    if (!form || Store.getProperty(id).status === "closed") return;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const picked = (form.querySelector('input[name="winner"]:checked') || {}).value;
+      const p = Store.getProperty(id);
+      if (!confirm("Close this auction and confirm the winner for “"+p.title+"”?")) return;
+      try {
+        const res = Store.closeAuction(id, picked || undefined);
+        const msg = res.winner
+          ? "Auction closed. Winner: " + res.winner.name + " · " + maskPhone(res.winner.phone) + " with " + formatPKR(res.winner.amount)
+          : "Auction closed. No bids were placed.";
+        toast(msg); render();
+      } catch (err) { toast(err.message); }
+    });
+  }
+  function compressImage(file, maxW, quality) {
+    maxW = maxW || 800; quality = quality || 0.72;
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * scale));
+        c.height = Math.max(1, Math.round(img.height * scale));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+      img.src = url;
+    });
+  }
+  function exportCsv() {
+    const rows = Store.exportResults();
+    const csv = rows.map(r => r.map(cell => {
+      const s = String(cell ?? "");
+      return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+    }).join(",")).join("\n");
+    const blob = new Blob(["\ufeff"+csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "twc-auction-results.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("CSV downloaded.");
+  }
+  document.querySelectorAll(".nav button").forEach(b => {
+    b.addEventListener("click", () => {
+      const n = b.getAttribute("data-nav");
+      go(n === "home" ? "#/" : "#/"+n);
+    });
+  });
+  window.addEventListener("hashchange", render);
+  render();
+  window.__TWC_AUCTION__ = {
+    Store, formatPKR, maskPhone, remainingParts, parseYouTubeId, youtubeEmbedUrl,
+    offerSummary, normalizeOffer, resetDemo: () => Store.resetDemo(), CONFIG, ADMIN_UID
+  };
+  </script>
+</body>
+</html>
