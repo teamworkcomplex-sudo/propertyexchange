@@ -197,6 +197,9 @@ function pageHtml(prop, image) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b2545" />
+  <link rel="manifest" href="../../manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="../../icon-192.png" sizes="192x192" />
   <title>${escapeHtml(fullTitle)}</title>
   <meta name="description" content="${escapeHtml(desc)}" />
   <link rel="canonical" href="${escapeHtml(pageUrl)}" />
@@ -246,6 +249,9 @@ function pageHtml(prop, image) {
     (function () {
       var ua = navigator.userAgent || "";
       var bot = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|google|bing|embedly|quora|pinterest|slack|discord|twitter/i.test(ua);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("../../sw.js", { scope: "/propertyexchange/auction/" }).catch(function () {});
+      }
       if (!bot) location.replace(${JSON.stringify(appUrl)});
     })();
   </script>

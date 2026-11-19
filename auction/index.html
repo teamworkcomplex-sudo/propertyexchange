@@ -9,7 +9,8 @@
   <meta name="google-site-verification" content="zUmMqPrVD5PHetSSBmcWfouUjO8f7nYfXQgYIMKvxcE" />
   <link rel="canonical" href="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/" />
   <link rel="icon" href="favicon.png" type="image/png" />
-  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" sizes="192x192" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <meta property="og:site_name" content="Team Work Complex Pvt Ltd" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="en_PK" />
@@ -200,6 +201,13 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .btn, .bid-box, input, form, .video-wrap { scroll-margin-top: 110px; scroll-margin-bottom: calc(var(--nav-h) + var(--safe-b) + 20px); }
+    .install-app {
+      position: fixed; z-index: 45; right: max(12px, calc(50% - 203px));
+      bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+      border: 0; background: var(--gold); color: var(--navy);
+      font-size: 12px; font-weight: 800; border-radius: 999px; padding: 8px 12px;
+      box-shadow: var(--shadow);
+    }
     .hidden { display: none !important; }
     .footer-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 18px; line-height: 1.5; }
   </style>
@@ -222,6 +230,7 @@
       <button type="button" data-nav="login" data-testid="nav-account"><span class="ico">👤</span>Account</button>
     </nav>
     <div class="toast" id="toast" role="status"></div>
+    <button type="button" id="install-app" class="install-app" hidden>Install app</button>
   </div>
   <script type="module">
 
@@ -1331,6 +1340,35 @@
   bootAuth();
   ensureRouteData();
   render();
+  </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js", { scope: "/propertyexchange/auction/" }).catch(function () {});
+      });
+    }
+    (function () {
+      var deferred = null;
+      var button = document.getElementById("install-app");
+      if (!button) return;
+      window.addEventListener("beforeinstallprompt", function (event) {
+        event.preventDefault();
+        deferred = event;
+        button.hidden = false;
+      });
+      button.addEventListener("click", function () {
+        if (!deferred) return;
+        deferred.prompt();
+        deferred.userChoice.then(function () {
+          deferred = null;
+          button.hidden = true;
+        });
+      });
+      window.addEventListener("appinstalled", function () {
+        deferred = null;
+        button.hidden = true;
+      });
+    })();
   </script>
 </body>
 </html>

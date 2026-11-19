@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b2545" />
+  <link rel="manifest" href="../../manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="../../icon-192.png" sizes="192x192" />
   <title>7 Marla plot for Exchange  in Hill view housing scheme | Team Work Complex Pvt Ltd</title>
   <meta name="description" content="7 Marla plot for Exchange in Hill view housing scheme. 7.2 Marla House in Islamabad. Exchange wanted: Any Property. Minimum bid PKR 45,00,000. Property exchange auction by Team Work Complex Pvt Ltd in Pakistan." />
   <link rel="canonical" href="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/nIgPNIEvhKAUzUzsTrXk/" />
@@ -60,6 +63,9 @@
     (function () {
       var ua = navigator.userAgent || "";
       var bot = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|google|bing|embedly|quora|pinterest|slack|discord|twitter/i.test(ua);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("../../sw.js", { scope: "/propertyexchange/auction/" }).catch(function () {});
+      }
       if (!bot) location.replace("../../#/property/nIgPNIEvhKAUzUzsTrXk");
     })();
   </script>
