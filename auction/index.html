@@ -485,19 +485,14 @@
     return App.profile;
   }
   async function signInGoogle() {
-    try {
-      if (isMobileClient()) await signInWithRedirect(auth, googleProvider);
-      else {
-        try { await signInWithPopup(auth, googleProvider); }
-        catch (err) {
-          const code = err && err.code || "";
-          if (/popup|internal|cancelled|web-storage/i.test(code + " " + (err && err.message || ""))) {
-            await signInWithRedirect(auth, googleProvider);
-          } else throw err;
-        }
+    try { await signInWithPopup(auth, googleProvider); }
+    catch (err) {
+      const code = err && err.code || "";
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+      if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+        await signInWithRedirect(auth, googleProvider);
+        return;
       }
-    } catch (err) {
-      if (err && err.code === "auth/popup-closed-by-user") return;
       throw err;
     }
   }
@@ -1289,7 +1284,7 @@
   });
 
   function bootAuth() {
-    getRedirectResult(auth).catch(() => {});
+    getRedirectResult(auth).catch((e) => { if (e && e.code) toast("Sign-in error: " + e.code); });
     onAuthStateChanged(auth, async (user) => {
       App.user = user;
       App.authReady = true;
