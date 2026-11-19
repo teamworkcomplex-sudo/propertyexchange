@@ -4,9 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b2545" />
-  <meta name="description" content="Team Work Complex Pvt Ltd — Property Exchange weekly auction (boli) preview" />
+  <meta name="description" id="meta-desc" content="Team Work Complex Pvt Ltd — Property Exchange weekly auction (boli). Verified listings and live bidding." />
+  <meta property="og:title" id="og-title" content="Property Auction | Team Work Complex Pvt Ltd" />
+  <meta property="og:description" id="og-desc" content="Exchange and bid on verified properties with Team Work Complex Pvt Ltd." />
+  <meta property="og:type" content="website" />
   <title>Property Auction | Team Work Complex Pvt Ltd</title>
-  <style>
+<style>
     :root {
       --navy: #0b2545; --navy-mid: #14325a; --navy-deep: #07182c;
       --gold: #f4c430; --gold-dim: #c9a227; --gold-soft: #fff6d4;
@@ -186,7 +189,6 @@
 <body>
   <div class="app" id="app">
     <div class="topbar">
-      <div class="demo-banner" data-testid="demo-banner">Demo preview — example data only, not a live auction</div>
       <header class="header">
         <div class="logo-mark" aria-hidden="true">TWC</div>
         <div>
@@ -203,269 +205,122 @@
     </nav>
     <div class="toast" id="toast" role="status"></div>
   </div>
-  <script>
+  <script type="module">
 
-  /**
-   * FIREBASE CONFIG PLACEHOLDER
-   * Later: create a Firebase project, enable Firestore + Phone Auth, then paste
-   * the web app config below and set USE_FIREBASE to true. Until then this
-   * preview stores demo data in localStorage only (this browser, this device).
-   *
-   * const firebaseConfig = {
-   *   apiKey: "YOUR_API_KEY",
-   *   authDomain: "YOUR_PROJECT.firebaseapp.com",
-   *   projectId: "YOUR_PROJECT_ID",
-   *   storageBucket: "YOUR_PROJECT.appspot.com",
-   *   messagingSenderId: "YOUR_SENDER_ID",
-   *   appId: "YOUR_APP_ID"
-   * };
-   *
-   * ADMIN ACCESS (static demo only):
-   * There is no Admin button in the public UI. The owner opens a secret hash
-   * route and unlocks with a password. Only the SHA-256 hash of that password
-   * is stored here — never the plain password. The admin session is kept in
-   * sessionStorage and ends on Logout or when the tab is closed.
-   *
-   * THIS IS STILL FRONT-END-ONLY PROTECTION for a static demo. Anyone who
-   * reads this file can attempt to bypass it. It is not real security.
-   * A live site needs Firebase Auth + a single ADMIN_UID and Firestore rules
-   * that allow property create/update/delete only when request.auth.uid == ADMIN_UID.
-   * Regular users may only create bids; they cannot list or edit properties.
-   * See GUIDE-urdu.md.
-   */
-  const USE_FIREBASE = false;
-  const ADMIN_UID = "YOUR_FIREBASE_ADMIN_UID";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
+    getRedirectResult, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import {
+    initializeFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc,
+    updateDoc, deleteDoc, onSnapshot, serverTimestamp, runTransaction,
+    writeBatch, query, orderBy, Timestamp
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAWKCuykwlT3Y4SKTxpWLnD9DNKSd8sADY",
+    authDomain: "property-auctions.firebaseapp.com",
+    projectId: "property-auctions",
+    storageBucket: "property-auctions.firebasestorage.app",
+    messagingSenderId: "841919042709",
+    appId: "1:841919042709:web:7b4472e9beade09551b79c",
+    measurementId: "G-2DBH5L4NM1"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  const googleProvider = new GoogleAuthProvider();
+
+  const ADMIN_EMAIL = "teamworkcomplex@gmail.com";
+
+  const ADMIN_ROUTE = "x-lmqi53dqAkgPXu5J";
 
   const CONFIG = {
     company: "Team Work Complex Pvt Ltd",
     phone: "0345-8514492",
-    storageKey: "twc-auction-preview-v2",
-
     tz: "Asia/Karachi",
-    maxPhotos: 8
+    maxPhotos: 4,
+    maxPhotoBytes: 150000
   };
-  // Secret admin route slug and password hash only. Plain password is not stored here.
-  const ADMIN_ROUTE = "x-lmqi53dqAkgPXu5J";
-  const ADMIN_PW_SHA256 = "cb70e123c893a9f08c6dbc9d242f19acabedc5a69ad714ecad67297290b35ce3";
-  const ADMIN_SESSION_KEY = "twc-auction-admin-session";
   const PROPERTY_TYPES = ["House","Plot","Commercial Plot","Shop","Apartment","Farm House","Other"];
+  const DEFAULT_TITLE = "Property Auction | Team Work Complex Pvt Ltd";
+  const DEFAULT_DESC = "Team Work Complex Pvt Ltd — Property Exchange weekly auction (boli). Verified listings and live bidding.";
 
-  /* DATA LAYER
-     Swap LocalStore for a FirebaseStore (Firestore + Phone Auth) later.
-     Public documents must NEVER include owner name, CNIC, or documents.
-     Only the single admin may add/edit/delete auction properties.
-     Regular users may only place bids (amount + offered exchange property). */
-  const DataLayer = (() => {
-    const now = () => Date.now();
-    function seedData() {
-      const t = now();
-      const properties = [
-        { id: "p1", title: "10 Marla House, DHA Phase 5", city: "Lahore", size: "10 Marla", type: "House",
-          exchangeWanted: "5 Marla commercial shop in Gulberg, Lahore",
-          photos: [demoPhoto("house", "Example photo 1"), demoPhoto("interior", "Example photo 2")],
-          art: "house", youtubeId: "aqz-KE-bpKQ", minBid: 25000000, increment: 100000,
-          auctionEnd: t + (2 * 24 + 4) * 3600000, status: "active", winnerBidId: null, isExample: true, createdAt: t - 86400000 },
-        { id: "p2", title: "5 Marla Commercial Plot, Bahria Town", city: "Rawalpindi", size: "5 Marla", type: "Commercial Plot",
-          exchangeWanted: "Residential house in Islamabad", photos: [], art: "plot", youtubeId: null,
-          minBid: 18000000, increment: 50000, auctionEnd: t + (11 * 3600000) + (25 * 60000),
-          status: "active", winnerBidId: null, isExample: true, createdAt: t - 43200000 },
-        { id: "p3", title: "1 Kanal Farm House, Bani Gala", city: "Islamabad", size: "1 Kanal", type: "Farm House",
-          exchangeWanted: "2 Kanal plot in DHA, any city", photos: [], art: "farm", youtubeId: null,
-          minBid: 40000000, increment: 200000, auctionEnd: t + 5 * 24 * 3600000,
-          status: "active", winnerBidId: null, isExample: true, createdAt: t - 172800000 }
-      ];
-      const bids = [
-        { id: "b1", propertyId: "p1", name: "Example bidder", phone: "03001112233", amount: 25100000, createdAt: t - 36000000,
-          offer: { type: "Shop", city: "Gulberg, Lahore", size: "4 Marla", description: "Ground-floor shop on a main road.", estimatedValue: 22000000 } },
-        { id: "b2", propertyId: "p1", name: "Example bidder", phone: "03219876543", amount: 25500000, createdAt: t - 18000000,
-          offer: { type: "House", city: "Johar Town, Lahore", size: "8 Marla", description: "Corner house with a car porch.", estimatedValue: 24000000 } },
-        { id: "b3", propertyId: "p1", name: "Example bidder", phone: "03331234567", amount: 26500000, createdAt: t - 5400000,
-          offer: { type: "Shop", city: "Gulberg, Lahore", size: "5 Marla", description: "Commercial shop near MM Alam Road.", estimatedValue: 26000000 } },
-        { id: "b4", propertyId: "p3", name: "Example bidder", phone: "03337654321", amount: 40200000, createdAt: t - 7200000,
-          offer: { type: "Plot", city: "DHA, Islamabad", size: "2 Kanal", description: "Open plot, clear title.", estimatedValue: 38000000 } },
-        { id: "b5", propertyId: "p3", name: "Example bidder", phone: "03115557788", amount: 45000000, createdAt: t - 2700000,
-          offer: { type: "Plot", city: "DHA Phase 2, Islamabad", size: "2 Kanal", description: "Level plot on a 60-foot road.", estimatedValue: 44000000 } }
-      ];
-      return { properties, bids, session: { name: null, phone: null }, demo: true };
-    }
-    function load() {
-      try {
-        const raw = localStorage.getItem(CONFIG.storageKey);
-        if (!raw) return seedData();
-        const data = JSON.parse(raw);
-        if (!data || !Array.isArray(data.properties)) return seedData();
-        data.session = data.session || { name: null, phone: null }; delete data.session.isAdmin;
-        data.bids = data.bids || [];
-        data.properties.forEach(p => { if (!Array.isArray(p.photos)) p.photos = p.photo ? [p.photo] : []; });
-        data.bids.forEach(b => { if (!b.offer) b.offer = null; });
-        return data;
-      } catch (e) { return seedData(); }
-    }
-    function save(data) { localStorage.setItem(CONFIG.storageKey, JSON.stringify(data)); }
-    let db = load();
-    function uid(prefix) { return prefix + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4); }
-    function highestBid(propertyId) {
-      return db.bids.filter(b => b.propertyId === propertyId).sort((a, b) => b.amount - a.amount || b.createdAt - a.createdAt)[0] || null;
-    }
-    function currentHighest(prop) { const top = highestBid(prop.id); return top ? top.amount : prop.minBid; }
-    function minNextBid(prop) { const top = highestBid(prop.id); return top ? top.amount + prop.increment : prop.minBid + prop.increment; }
-    function isEnded(prop) { return prop.status === "closed" || now() >= prop.auctionEnd; }
-    function isAdminSession() {
-      try { return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1"; }
-      catch (e) { return false; }
-    }
-    function requireAdmin() { if (!isAdminSession()) throw new Error("Admin only. Only the owner can manage properties."); }
-    const api = {
-      getState() { return db; },
-      getProperties() { return db.properties.slice().sort((a, b) => a.auctionEnd - b.auctionEnd); },
-      getProperty(id) { return db.properties.find(p => p.id === id) || null; },
-      currentHighest, minNextBid, isEnded, highestBid,
-      saveProperty(input) {
-        requireAdmin();
-        const existing = input.id ? db.properties.find(p => p.id === input.id) : null;
-        if (input.id && !existing) throw new Error("Property not found.");
-        let youtubeId = existing ? existing.youtubeId : null;
-        if (Object.prototype.hasOwnProperty.call(input, "youtubeUrl") || Object.prototype.hasOwnProperty.call(input, "youtubeId")) {
-          const raw = input.youtubeUrl != null ? input.youtubeUrl : input.youtubeId;
-          if (!raw || !String(raw).trim()) youtubeId = null;
-          else {
-            const parsed = parseYouTubeId(raw);
-            if (parsed.error) throw new Error(parsed.error);
-            youtubeId = parsed.id;
-          }
-        }
-        let photos = Array.isArray(input.photos) ? input.photos.slice() : (existing ? (existing.photos || []).slice() : []);
-        photos = photos.filter(p => typeof p === "string" && p.indexOf("data:image/") === 0);
-        if (photos.length > CONFIG.maxPhotos) photos = photos.slice(0, CONFIG.maxPhotos);
-        const prop = {
-          id: existing ? existing.id : uid("p"),
-          title: String(input.title || "").trim(), city: String(input.city || "").trim(),
-          size: String(input.size || "").trim(), type: String(input.type || "").trim(),
-          exchangeWanted: String(input.exchangeWanted || "").trim(),
-          photos, art: input.art || (existing ? existing.art : "house"), youtubeId,
-          minBid: Number(input.minBid), increment: Number(input.increment), auctionEnd: Number(input.auctionEnd),
-          status: existing ? existing.status : "active", winnerBidId: existing ? existing.winnerBidId : null,
-          isExample: existing ? !!existing.isExample : false, createdAt: existing ? existing.createdAt : now()
-        };
-        if (!prop.title || !prop.city || !prop.size || !prop.type) throw new Error("Please fill title, city, size and type.");
-        if (!(prop.minBid > 0) || !(prop.increment > 0)) throw new Error("Minimum bid and increment must be greater than zero.");
-        if (!prop.auctionEnd || Number.isNaN(prop.auctionEnd)) throw new Error("Please set an auction end time.");
-        if (existing) db.properties = db.properties.map(p => p.id === prop.id ? prop : p);
-        else db.properties.push(prop);
-        save(db);
-        return prop;
-      },
-      deleteProperty(id) {
-        requireAdmin();
-        if (!db.properties.find(p => p.id === id)) throw new Error("Property not found.");
-        db.bids = db.bids.filter(b => b.propertyId !== id);
-        db.properties = db.properties.filter(p => p.id !== id);
-        save(db);
-        return true;
-      },
-      closeAuction(id, winnerBidId) {
-        requireAdmin();
-        const prop = db.properties.find(p => p.id === id);
-        if (!prop) throw new Error("Property not found.");
-        if (prop.status === "closed") throw new Error("Auction is already closed.");
-        const bids = api.getBids(id);
-        let winner = null;
-        if (winnerBidId) {
-          winner = bids.find(b => b.id === winnerBidId);
-          if (!winner) throw new Error("Please select a valid bid as the winner.");
-        } else winner = highestBid(id);
-        prop.status = "closed";
-        prop.winnerBidId = winner ? winner.id : null;
-        prop.closedAt = now();
-        save(db);
-        return { property: prop, winner };
-      },
-      getBids(propertyId) {
-        return db.bids.filter(b => b.propertyId === propertyId).sort((a, b) => b.amount - a.amount || b.createdAt - a.createdAt);
-      },
-      placeBid({ propertyId, amount, offer }) {
-        const session = db.session;
-        if (!session.phone) throw new Error("Please log in to place a bid.");
-        const prop = db.properties.find(p => p.id === propertyId);
-        if (!prop) throw new Error("Property not found.");
-        if (prop.status === "closed") throw new Error("This auction is closed.");
-        if (now() >= prop.auctionEnd) throw new Error("This auction has ended.");
-        const value = Number(amount);
-        if (!Number.isFinite(value) || value <= 0) throw new Error("Enter a valid bid amount.");
-        const need = minNextBid(prop);
-        if (value < need) { const err = new Error("LOW_BID"); err.code = "LOW_BID"; err.minNext = need; throw err; }
-        const off = normalizeOffer(offer);
-        if (off.error) throw new Error(off.error);
-        const bid = { id: uid("b"), propertyId, name: session.name, phone: session.phone, amount: value, offer: off.offer, createdAt: now() };
-        db.bids.push(bid); save(db); return bid;
-      },
-      getSession() { return Object.assign({}, db.session); },
-      login({ name, phone }) {
-        const n = String(name || "").trim();
-        const p = normalizePhone(phone);
-        if (n.length < 2) throw new Error("Please enter your name.");
-        if (!p) throw new Error("Enter a valid Pakistani mobile number, e.g. 0345-8514492.");
-        db.session.name = n; db.session.phone = p; save(db); return api.getSession();
-      },
-      logout() { db.session.name = null; db.session.phone = null; save(db); },
-      isAdminSession,
-      async sha256Hex(text) {
-        const data = new TextEncoder().encode(String(text ?? ""));
-        const buf = await crypto.subtle.digest("SHA-256", data);
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-      },
-      async unlockAdmin(password) {
-        const hex = await api.sha256Hex(password);
-        if (hex !== ADMIN_PW_SHA256) throw new Error("Incorrect password.");
-        sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
-        return true;
-      },
-      lockAdmin() {
-        try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch (e) {}
-      },
-      exportResults() {
-        const rows = [["Property ID","Title","City","Size","Type","Status","Min bid","Highest bid","Winner name","Winner phone","Winner amount","Winner offer type","Winner offer city","Winner offer size","Winner offer value","Auction end (PKT)","Closed at (PKT)"]];
-        db.properties.forEach(p => {
-          const top = highestBid(p.id);
-          const winner = p.winnerBidId ? db.bids.find(b => b.id === p.winnerBidId) : (p.status === "closed" ? top : null);
-          const o = winner && winner.offer ? winner.offer : {};
-          rows.push([p.id, p.title, p.city, p.size, p.type, p.status, p.minBid, top ? top.amount : "",
-            winner ? winner.name : "", winner ? winner.phone : "", winner ? winner.amount : "",
-            o.type || "", o.city || "", o.size || "", o.estimatedValue || "",
-            formatDate(p.auctionEnd), p.closedAt ? formatDate(p.closedAt) : ""]);
-        });
-        return rows;
-      },
-      resetDemo() { db = seedData(); save(db); return db; }
-    };
-    return api;
-  })();
-  const Store = DataLayer;
+  /* THIS IS STILL FRONT-END ROUTE HIDING for the admin panel entry.
+     Real security is Firebase Auth (Google, verified email === ADMIN_EMAIL)
+     plus the published Firestore rules in firestore.rules. */
 
-  function demoPhoto(kind, caption) {
-    const c = document.createElement("canvas");
-    c.width = 800; c.height = 480;
-    const g = c.getContext("2d");
-    const sky = g.createLinearGradient(0, 0, 0, 480);
-    if (kind === "interior") { sky.addColorStop(0, "#efe6d6"); sky.addColorStop(1, "#c8b397"); }
-    else { sky.addColorStop(0, "#8eb8d8"); sky.addColorStop(1, "#e8f2fa"); }
-    g.fillStyle = sky; g.fillRect(0, 0, 800, 480);
-    if (kind === "interior") {
-      g.fillStyle = "#0b2545"; g.fillRect(0, 0, 800, 80);
-      g.fillStyle = "#f4c430"; g.fillRect(300, 160, 80, 200);
-      g.fillStyle = "#9ab6d1"; g.fillRect(80, 180, 160, 110); g.fillRect(560, 180, 160, 110);
-      g.fillStyle = "#6b4f32"; g.fillRect(0, 400, 800, 80);
-    } else {
-      g.fillStyle = "#3d4f3a"; g.fillRect(0, 400, 800, 80);
-      g.fillStyle = "#0b2545";
-      g.beginPath(); g.moveTo(400, 70); g.lineTo(700, 250); g.lineTo(100, 250); g.closePath(); g.fill();
-      g.fillStyle = "#f7efe3"; g.fillRect(170, 250, 460, 170);
-      g.fillStyle = "#f4c430"; g.fillRect(360, 300, 80, 120);
-    }
-    g.fillStyle = "rgba(11,37,69,0.82)"; g.fillRect(20, 420, 280, 40);
-    g.fillStyle = "#f4c430"; g.font = "bold 22px Segoe UI, Arial";
-    g.fillText(caption || "Example photo", 32, 447);
-    return c.toDataURL("image/jpeg", 0.62);
+  function isAdminUser(user) {
+    return !!(user && user.email && user.emailVerified
+      && String(user.email).toLowerCase() === ADMIN_EMAIL);
+  }
+  function isMobileClient() {
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")
+      || (navigator.maxTouchPoints > 1 && Math.min(screen.width, screen.height) < 900);
+  }
+
+  function normalizePhone(input) {
+    const digits = String(input || "").replace(/\D/g, "");
+    let p = digits;
+    if (p.startsWith("92") && p.length === 12) p = "0" + p.slice(2);
+    return /^03\d{9}$/.test(p) ? p : null;
+  }
+  function maskPhone(phone) {
+    const p = normalizePhone(phone) || String(phone || "").replace(/\D/g, "");
+    return p.length < 4 ? "03xx-xxx-xxxx" : "03xx-xxx-" + p.slice(-4);
+  }
+  function formatPKR(n) {
+    const s = String(Math.round(Number(n) || 0));
+    if (s.length <= 3) return "PKR " + s;
+    const last3 = s.slice(-3);
+    let rest = s.slice(0, -3);
+    const parts = [];
+    while (rest.length > 2) { parts.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
+    if (rest) parts.unshift(rest);
+    return "PKR " + parts.join(",") + "," + last3;
+  }
+  function toMillis(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === "function") return value.toMillis();
+    if (typeof value.seconds === "number") return value.seconds * 1000;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+  function formatDate(ts) {
+    const ms = toMillis(ts);
+    if (!ms) return "";
+    return new Date(ms).toLocaleString("en-PK", {
+      timeZone: CONFIG.tz, day: "2-digit", month: "short", year: "numeric",
+      hour: "numeric", minute: "2-digit", hour12: true
+    }) + " PKT";
+  }
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+  function remainingParts(end) {
+    let ms = toMillis(end) - Date.now();
+    const ended = ms <= 0;
+    if (ms < 0) ms = 0;
+    const sec = Math.floor(ms / 1000) % 60;
+    const min = Math.floor(ms / 60000) % 60;
+    const hr = Math.floor(ms / 3600000) % 24;
+    const day = Math.floor(ms / 86400000);
+    const pad = n => String(n).padStart(2, "0");
+    const label = ended ? "Ended" : (day > 0 ? pad(day) + "d " + pad(hr) + "h " + pad(min) + "m " + pad(sec) + "s" : pad(hr) + "h " + pad(min) + "m " + pad(sec) + "s");
+    return { ended, ms, label, soon: !ended && ms < 12 * 3600000 };
+  }
+  function statusOf(prop) {
+    if (prop.status === "closed") return "closed";
+    if (Date.now() >= toMillis(prop.endsAt)) return "ended";
+    if (toMillis(prop.endsAt) - Date.now() < 12 * 3600000) return "soon";
+    return "live";
+  }
+  function statusBadge(prop) {
+    const map = { live: ["live","Live"], soon: ["soon","Ending soon"], ended: ["ended","Ended"], closed: ["closed","Closed"] };
+    const [cls, text] = map[statusOf(prop)];
+    return '<span class="badge ' + cls + '">' + text + "</span>";
   }
   function parseYouTubeId(input) {
     const raw = String(input || "").trim();
@@ -498,69 +353,22 @@
     const type = String(o.type || "").trim();
     const city = String(o.city || o.location || "").trim();
     const size = String(o.size || "").trim();
-    const description = String(o.description || "").trim();
-    const estimatedValue = Number(o.estimatedValue);
+    const desc = String(o.desc || o.description || "").trim();
+    const estValue = Number(o.estValue != null ? o.estValue : o.estimatedValue);
     if (!type) return { error: "Please choose the type of property you are offering." };
     if (city.length < 2) return { error: "Please enter the city or location of your property." };
     if (!size) return { error: "Please enter the size of your property." };
-    if (description.length < 8) return { error: "Please add a short description of your property (at least 8 characters)." };
-    if (!Number.isFinite(estimatedValue) || estimatedValue <= 0) return { error: "Please enter an estimated value for your property." };
-    return { offer: { type, city, size, description, estimatedValue } };
+    if (desc.length < 8) return { error: "Please add a short description of your property (at least 8 characters)." };
+    if (!Number.isFinite(estValue) || estValue <= 0) return { error: "Please enter an estimated value for your property." };
+    return { offer: { type, city, size, desc, estValue } };
   }
   function offerSummary(offer) { return offer ? (offer.size + " " + offer.type + " in " + offer.city) : ""; }
-  function normalizePhone(input) {
-    const digits = String(input || "").replace(/\D/g, "");
-    let p = digits;
-    if (p.startsWith("92") && p.length === 12) p = "0" + p.slice(2);
-    return /^03\d{9}$/.test(p) ? p : null;
+  function currentHighestOf(prop) {
+    const n = Number(prop.currentHighest);
+    if (Number.isFinite(n) && n > 0) return n;
+    return Number(prop.minBid) || 0;
   }
-  function maskPhone(phone) {
-    const p = normalizePhone(phone) || String(phone || "").replace(/\D/g, "");
-    return p.length < 4 ? "03xx-xxx-xxxx" : "03xx-xxx-" + p.slice(-4);
-  }
-  function formatPKR(n) {
-    const s = String(Math.round(Number(n) || 0));
-    if (s.length <= 3) return "PKR " + s;
-    const last3 = s.slice(-3);
-    let rest = s.slice(0, -3);
-    const parts = [];
-    while (rest.length > 2) { parts.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
-    if (rest) parts.unshift(rest);
-    return "PKR " + parts.join(",") + "," + last3;
-  }
-  function formatDate(ts) {
-    return new Date(ts).toLocaleString("en-PK", {
-      timeZone: CONFIG.tz, day: "2-digit", month: "short", year: "numeric",
-      hour: "numeric", minute: "2-digit", hour12: true
-    }) + " PKT";
-  }
-  function escapeHtml(s) {
-    return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  }
-  function remainingParts(end) {
-    let ms = end - Date.now();
-    const ended = ms <= 0;
-    if (ms < 0) ms = 0;
-    const sec = Math.floor(ms / 1000) % 60;
-    const min = Math.floor(ms / 60000) % 60;
-    const hr = Math.floor(ms / 3600000) % 24;
-    const day = Math.floor(ms / 86400000);
-    const pad = n => String(n).padStart(2, "0");
-    const label = ended ? "Ended" : (day > 0 ? pad(day) + "d " + pad(hr) + "h " + pad(min) + "m " + pad(sec) + "s" : pad(hr) + "h " + pad(min) + "m " + pad(sec) + "s");
-    return { ended, ms, day, hr, min, sec, label, soon: !ended && ms < 12 * 3600000 };
-  }
-  function statusOf(prop) {
-    if (prop.status === "closed") return "closed";
-    if (Date.now() >= prop.auctionEnd) return "ended";
-    if (prop.auctionEnd - Date.now() < 12 * 3600000) return "soon";
-    return "live";
-  }
-  function statusBadge(prop) {
-    const map = { live: ["live","Live"], soon: ["soon","Ending soon"], ended: ["ended","Ended"], closed: ["closed","Closed"] };
-    const [cls, text] = map[statusOf(prop)];
-    return '<span class="badge ' + cls + '">' + text + "</span>";
-  }
-  function exampleBadge(prop) { return prop.isExample ? '<span class="badge example">Example data</span>' : ""; }
+  function minNextBid(prop) { return currentHighestOf(prop) + Number(prop.increment || 0); }
   function photoArt(art, uid) {
     const gid = "g" + String(uid || art).replace(/[^a-zA-Z0-9_-]/g, "") + "-" + art;
     const scenes = {
@@ -579,54 +387,376 @@
       : '<polygon points="200,40 360,150 40,150" fill="'+s.roof+'"/><rect x="80" y="150" width="240" height="80" fill="'+s.body+'"/><rect x="170" y="170" width="50" height="60" fill="'+s.acc+'"/><rect x="100" y="170" width="44" height="36" fill="#9ab6d1"/><rect x="246" y="170" width="44" height="36" fill="#9ab6d1"/>';
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+s.sky[0]+'"/><stop offset="1" stop-color="'+s.sky[1]+'"/></linearGradient></defs><rect width="400" height="240" fill="url(#'+gid+')"/><rect y="200" width="400" height="40" fill="#3d4f3a" opacity=".7"/>'+extra+'</svg>';
   }
-  function coverMedia(prop) {
-    const photos = (prop.photos || []).filter(p => String(p).indexOf("data:image/") === 0);
-    return photos[0] ? '<img src="'+photos[0]+'" alt="">' : photoArt(prop.art || "house", prop.id);
+  function dataUrlBytes(dataUrl) {
+    const i = String(dataUrl).indexOf(",");
+    const b64 = i >= 0 ? dataUrl.slice(i + 1) : dataUrl;
+    return Math.floor(b64.length * 0.75);
   }
-  function photoHTML(prop, extraClass) {
-    const end = remainingParts(prop.auctionEnd);
-    const videoBadge = prop.youtubeId ? '<span class="badge video">Video</span>' : "";
-    return '<div class="photo '+(extraClass||"")+'">'+coverMedia(prop)+
-      '<div class="badges">'+statusBadge(prop)+exampleBadge(prop)+videoBadge+'</div>'+
-      '<div class="countdown-chip" data-testid="countdown" data-end="'+prop.auctionEnd+'">⏱ '+escapeHtml(end.label)+"</div></div>";
+  function compressImage(file, maxBytes, maxW) {
+    maxBytes = maxBytes || CONFIG.maxPhotoBytes;
+    maxW = maxW || 900;
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * scale));
+        c.height = Math.max(1, Math.round(img.height * scale));
+        const g = c.getContext("2d");
+        let q = 0.8, out = "";
+        const tryQ = () => {
+          g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+          g.drawImage(img, 0, 0, c.width, c.height);
+          out = c.toDataURL("image/jpeg", q);
+          if (dataUrlBytes(out) > maxBytes && q > 0.4) { q -= 0.1; tryQ(); return; }
+          if (dataUrlBytes(out) > maxBytes && c.width > 400) {
+            c.width = Math.round(c.width * 0.8);
+            c.height = Math.round(c.height * 0.8);
+            q = 0.7;
+            tryQ();
+            return;
+          }
+          URL.revokeObjectURL(url);
+          if (dataUrlBytes(out) > maxBytes) reject(new Error("That photo is still too large. Please pick a smaller image."));
+          else resolve(out);
+        };
+        tryQ();
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read that image.")); };
+      img.src = url;
+    });
   }
-  function galleryHTML(prop) {
-    const photos = (prop.photos || []).filter(p => String(p).indexOf("data:image/") === 0);
-    const slides = photos.length
-      ? photos.map((src, i) => '<div class="gallery-slide" data-i="'+i+'"><img src="'+src+'" alt="Photo '+(i+1)+'"></div>')
-      : ['<div class="gallery-slide">'+photoArt(prop.art || "house", prop.id)+"</div>"];
-    const end = remainingParts(prop.auctionEnd);
-    const videoBadge = prop.youtubeId ? '<span class="badge video">Video</span>' : "";
-    const dots = slides.length > 1 ? '<div class="gallery-dots" data-testid="gallery-dots">'+slides.map((_,i)=>'<span class="'+(i===0?"on":"")+'"></span>').join("")+"</div>" : "";
-    return '<div class="gallery" data-testid="gallery"><div class="gallery-track">'+slides.join("")+"</div>"+
-      '<div class="badges">'+statusBadge(prop)+exampleBadge(prop)+videoBadge+'</div>'+
-      '<div class="countdown-chip" data-testid="countdown" data-end="'+prop.auctionEnd+'">⏱ '+escapeHtml(end.label)+"</div>"+dots+"</div>";
+  function setSeo({ title, description }) {
+    const t = title || DEFAULT_TITLE;
+    const d = description || DEFAULT_DESC;
+    document.title = t;
+    const desc = document.getElementById("meta-desc");
+    if (desc) desc.setAttribute("content", d);
+    const ogt = document.getElementById("og-title");
+    if (ogt) ogt.setAttribute("content", t);
+    const ogd = document.getElementById("og-desc");
+    if (ogd) ogd.setAttribute("content", d);
   }
 
-  const App = { returnTo: null, bidFlash: null, tick: null, toastTimer: null, photos: [] };
-  function route() {
-    const hash = (location.hash || "#/").replace(/^#/, "") || "/";
-    const parts = hash.split("/").filter(Boolean);
-    if (parts[0] === "property" && parts[1]) return { name: "detail", id: parts[1] };
-    if (parts[0] === "login") return { name: "login" };
-    // #/admin and any other obvious admin paths always show the public home.
-    if (parts[0] === ADMIN_ROUTE && parts[1] === "new") return { name: "admin-form", id: null };
-    if (parts[0] === ADMIN_ROUTE && parts[1] === "edit" && parts[2]) return { name: "admin-form", id: parts[2] };
-    if (parts[0] === ADMIN_ROUTE && parts[1] === "bids" && parts[2]) return { name: "admin-bids", id: parts[2] };
-    if (parts[0] === ADMIN_ROUTE) return { name: "admin" };
-    return { name: "home" };
+  const App = {
+    user: null,
+    profile: null,
+    properties: [],
+    loaded: false,
+    loadError: null,
+    bidFlash: null,
+    photos: [],
+    photosEditId: null,
+    covers: {},
+    authReady: false,
+    tick: null,
+    toastTimer: null,
+    unsubs: [],
+    returnTo: null,
+    detail: { prop: null, photos: [], bids: [], privateMap: {} }
+  };
+
+  function clearSubs() {
+    App.unsubs.forEach(fn => { try { fn(); } catch (e) {} });
+    App.unsubs = [];
   }
-  function go(path) { location.hash = path; }
-  function adminPath(sub) { return "#/" + ADMIN_ROUTE + (sub ? "/" + String(sub).replace(/^\//, "") : ""); }
-  function goAdmin(sub) { go(adminPath(sub)); }
   function toast(msg) {
     const el = document.getElementById("toast");
     el.textContent = msg; el.classList.add("show");
     clearTimeout(App.toastTimer);
     App.toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
   }
-  function setNav(active) {
-    document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.getAttribute("data-nav") === active));
+
+  async function loadProfile(user) {
+    if (!user) { App.profile = null; return; }
+    const snap = await getDoc(doc(db, "users", user.uid));
+    App.profile = snap.exists() ? Object.assign({ id: user.uid }, snap.data()) : null;
+  }
+  async function saveProfile({ name, phone }) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Please sign in first.");
+    const n = String(name || "").trim();
+    const p = normalizePhone(phone);
+    if (n.length < 2) throw new Error("Please enter your name.");
+    if (!p) throw new Error("Enter a valid Pakistani mobile number, e.g. 0345-8514492.");
+    await setDoc(doc(db, "users", user.uid), { name: n, phone: p, email: user.email || "", updatedAt: serverTimestamp() }, { merge: true });
+    App.profile = Object.assign({}, App.profile, { name: n, phone: p, email: user.email || "" });
+    return App.profile;
+  }
+  async function signInGoogle() {
+    try {
+      if (isMobileClient()) await signInWithRedirect(auth, googleProvider);
+      else {
+        try { await signInWithPopup(auth, googleProvider); }
+        catch (err) {
+          const code = err && err.code || "";
+          if (/popup|internal|cancelled|web-storage/i.test(code + " " + (err && err.message || ""))) {
+            await signInWithRedirect(auth, googleProvider);
+          } else throw err;
+        }
+      }
+    } catch (err) {
+      if (err && err.code === "auth/popup-closed-by-user") return;
+      throw err;
+    }
+  }
+  async function signOutUser() {
+    await signOut(auth);
+    App.user = null;
+    App.profile = null;
+  }
+
+  function listenProperties() {
+    const unsub = onSnapshot(collection(db, "properties"), (snap) => {
+      App.properties = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+      App.properties.sort((a, b) => toMillis(a.endsAt) - toMillis(b.endsAt));
+      App.loaded = true;
+      App.loadError = null;
+      hydrateCovers();
+      const r = route();
+      if (r.name === "home" || (r.name && String(r.name).indexOf("admin") === 0)) render();
+    }, (err) => {
+      App.loadError = err;
+      App.loaded = true;
+      const r = route();
+      if (r.name === "home" || (r.name && String(r.name).indexOf("admin") === 0)) render();
+    });
+    App.unsubs.push(unsub);
+    setTimeout(() => {
+      if (App.loaded) return;
+      App.loaded = true;
+      App.loadError = App.loadError || new Error("timeout");
+      const r = route();
+      if (r.name === "home" || (r.name && String(r.name).indexOf("admin") === 0)) render();
+    }, 8000);
+  }
+  async function hydrateCovers() {
+    const missing = App.properties.filter(p => App.covers[p.id] === undefined);
+    await Promise.all(missing.map(async (p) => {
+      try {
+        const shot = await getDoc(doc(db, "properties", p.id, "photos", "0"));
+        App.covers[p.id] = shot.exists() ? (shot.data().dataUrl || null) : null;
+      } catch (e) { App.covers[p.id] = null; }
+    }));
+    const r = route();
+    if (r.name === "home" && missing.length) render();
+  }
+  function listenDetail(id) {
+    const unsubP = onSnapshot(doc(db, "properties", id), (snap) => {
+      App.detail.prop = snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+      render();
+    }, () => { App.detail.prop = null; render(); });
+    const unsubPh = onSnapshot(collection(db, "properties", id, "photos"), (snap) => {
+      const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()))
+        .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+      App.detail.photos = rows.map(r => r.dataUrl).filter(Boolean);
+      render();
+    });
+    const unsubB = onSnapshot(query(collection(db, "properties", id, "bids"), orderBy("amount", "desc")), (snap) => {
+      App.detail.bids = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+      render();
+    });
+    App.unsubs.push(unsubP, unsubPh, unsubB);
+    if (isAdminUser(App.user)) {
+      const unsubPriv = onSnapshot(collection(db, "properties", id, "bidPrivate"), (snap) => {
+        const map = {};
+        snap.docs.forEach(d => { map[d.id] = d.data(); });
+        App.detail.privateMap = map;
+        if (route().name === "admin-bids") render();
+      });
+      App.unsubs.push(unsubPriv);
+    }
+  }
+
+  async function saveProperty(input) {
+    if (!isAdminUser(App.user)) throw new Error("Admin only. Sign in with the owner Google account.");
+    let youtubeUrl = String(input.youtubeUrl || "").trim();
+    if (youtubeUrl) {
+      const parsed = parseYouTubeId(youtubeUrl);
+      if (parsed.error) throw new Error(parsed.error);
+      youtubeUrl = "https://youtu.be/" + parsed.id;
+    } else youtubeUrl = "";
+    const photos = (input.photos || []).filter(p => typeof p === "string" && p.indexOf("data:image/") === 0).slice(0, CONFIG.maxPhotos);
+    const title = String(input.title || "").trim();
+    const city = String(input.city || "").trim();
+    const size = String(input.size || "").trim();
+    const type = String(input.type || "").trim();
+    const exchangeWanted = String(input.exchangeWanted || "").trim();
+    const minBid = Number(input.minBid);
+    const increment = Number(input.increment);
+    const endsAtMs = Number(input.auctionEnd);
+    const art = input.art || "house";
+    if (!title || !city || !size || !type) throw new Error("Please fill title, city, size and type.");
+    if (!(minBid > 0) || !(increment > 0)) throw new Error("Minimum bid and increment must be greater than zero.");
+    if (!endsAtMs || Number.isNaN(endsAtMs)) throw new Error("Please set an auction end time.");
+    const payload = {
+      title, city, size, type, exchangeWanted, minBid, increment, art, youtubeUrl,
+      endsAt: Timestamp.fromMillis(endsAtMs)
+    };
+    let id = input.id;
+    if (id) {
+      const pref = doc(db, "properties", id);
+      const prev = await getDoc(pref);
+      if (!prev.exists()) throw new Error("Property not found.");
+      const prevData = prev.data();
+      await updateDoc(pref, payload);
+      if (!prevData.currentHighest && prevData.currentHighest !== 0) {
+        await updateDoc(pref, { currentHighest: minBid });
+      }
+    } else {
+      const ref = await addDoc(collection(db, "properties"), Object.assign({}, payload, {
+        status: "active",
+        currentHighest: minBid,
+        highestBidId: null,
+        winner: null,
+        createdAt: serverTimestamp()
+      }));
+      id = ref.id;
+    }
+    const existing = await getDocs(collection(db, "properties", id, "photos"));
+    const batch = writeBatch(db);
+    existing.docs.forEach(d => batch.delete(d.ref));
+    photos.forEach((dataUrl, i) => {
+      batch.set(doc(db, "properties", id, "photos", String(i)), { dataUrl, n: i });
+    });
+    await batch.commit();
+    return { id };
+  }
+  async function deleteProperty(id) {
+    if (!isAdminUser(App.user)) throw new Error("Admin only.");
+    const subs = ["photos", "bids", "bidPrivate"];
+    for (const sub of subs) {
+      const snap = await getDocs(collection(db, "properties", id, sub));
+      const docs = snap.docs;
+      for (let i = 0; i < docs.length; i += 400) {
+        const batch = writeBatch(db);
+        docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+    await deleteDoc(doc(db, "properties", id));
+  }
+  async function placeBid({ propertyId, amount, offer }) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Please sign in to place a bid.");
+    if (!App.profile || !App.profile.phone) throw new Error("Please add your mobile number first.");
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) throw new Error("Enter a valid bid amount.");
+    const off = normalizeOffer(offer);
+    if (off.error) throw new Error(off.error);
+    const bidCol = collection(db, "properties", propertyId, "bids");
+    const bidRef = doc(bidCol);
+    const privRef = doc(db, "properties", propertyId, "bidPrivate", bidRef.id);
+    const pref = doc(db, "properties", propertyId);
+    try {
+      await runTransaction(db, async (tx) => {
+        const psnap = await tx.get(pref);
+        if (!psnap.exists()) throw new Error("Property not found.");
+        const p = psnap.data();
+        if (p.status === "closed") throw new Error("This auction is closed.");
+        if (Date.now() >= toMillis(p.endsAt)) throw new Error("This auction has ended.");
+        const need = currentHighestOf(p) + Number(p.increment || 0);
+        if (value < need) {
+          const err = new Error("LOW_BID");
+          err.code = "LOW_BID";
+          err.minNext = need;
+          throw err;
+        }
+        tx.set(bidRef, {
+          uid: user.uid,
+          amount: value,
+          offer: off.offer,
+          maskedPhone: maskPhone(App.profile.phone),
+          createdAt: serverTimestamp()
+        });
+        tx.set(privRef, {
+          uid: user.uid,
+          name: App.profile.name || user.displayName || "",
+          phone: App.profile.phone,
+          createdAt: serverTimestamp()
+        });
+        tx.update(pref, { currentHighest: value, highestBidId: bidRef.id });
+      });
+    } catch (err) {
+      if (err && err.code === "LOW_BID") throw err;
+      if (err && err.code === "permission-denied") throw new Error("This bid could not be placed. Check the amount and that the auction is still open.");
+      throw err;
+    }
+    return true;
+  }
+  async function closeAuction(id, winnerBidId) {
+    if (!isAdminUser(App.user)) throw new Error("Admin only.");
+    const pref = doc(db, "properties", id);
+    const psnap = await getDoc(pref);
+    if (!psnap.exists()) throw new Error("Property not found.");
+    const p = psnap.data();
+    if (p.status === "closed") throw new Error("Auction is already closed.");
+    let winner = null;
+    if (winnerBidId) {
+      const b = await getDoc(doc(db, "properties", id, "bids", winnerBidId));
+      if (!b.exists()) throw new Error("Please select a valid bid as the winner.");
+      winner = Object.assign({ id: b.id }, b.data());
+    } else if (p.highestBidId) {
+      const b = await getDoc(doc(db, "properties", id, "bids", p.highestBidId));
+      if (b.exists()) winner = Object.assign({ id: b.id }, b.data());
+    }
+    const summary = winner ? {
+      maskedPhone: winner.maskedPhone || "",
+      amount: winner.amount,
+      offerSummary: offerSummary(winner.offer)
+    } : null;
+    await updateDoc(pref, { status: "closed", winner: summary, closedAt: serverTimestamp() });
+    return { winner };
+  }
+  function youtubeIdOf(prop) {
+    return parseYouTubeId((prop && prop.youtubeUrl) || "").id;
+  }
+  function toLocalInput(ts) {
+    const ms = toMillis(ts);
+    if (!ms) return "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: CONFIG.tz, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false
+    }).formatToParts(new Date(ms));
+    const get = t => (parts.find(p => p.type === t) || {}).value || "";
+    let hour = get("hour"); if (hour === "24") hour = "00";
+    return get("year")+"-"+get("month")+"-"+get("day")+"T"+hour+":"+get("minute");
+  }
+  function fromLocalInput(value) {
+    if (!value) return NaN;
+    const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!m) return new Date(value).getTime();
+    return new Date(m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":00+05:00").getTime();
+  }
+  function adminPath(sub) { return "#/" + ADMIN_ROUTE + (sub ? "/" + String(sub).replace(/^\//, "") : ""); }
+  function goAdmin(sub) { go(adminPath(sub)); }
+  function route() {
+    const hash = (location.hash || "#/").replace(/^#/, "") || "/";
+    const parts = hash.split("/").filter(Boolean);
+    const first = parts[0] || "";
+    if (first === "property" && parts[1]) return { name: "property", id: decodeURIComponent(parts[1]) };
+    if (first === "login") return { name: "login" };
+    if (first === "admin" || (first.indexOf("admin") === 0 && first !== ADMIN_ROUTE)) return { name: "home" };
+    if (first === ADMIN_ROUTE) {
+      if (!App.authReady) return { name: "auth-wait" };
+      if (!isAdminUser(App.user)) return { name: "home" };
+      if (parts[1] === "new") return { name: "admin-form", id: null };
+      if (parts[1] === "edit" && parts[2]) return { name: "admin-form", id: decodeURIComponent(parts[2]) };
+      if (parts[1] === "bids" && parts[2]) return { name: "admin-bids", id: decodeURIComponent(parts[2]) };
+      return { name: "admin" };
+    }
+    return { name: "home" };
+  }
+  function go(hash) { location.hash = hash; }
+
+  function setNav() {
+    const r = route();
+    const home = r.name === "home" || r.name === "property" || r.name === "auth-wait";
+    document.querySelectorAll("[data-nav]").forEach(btn => {
+      const key = btn.getAttribute("data-nav");
+      btn.classList.toggle("active", key === "home" ? home && r.name !== "login" : r.name === "login");
+    });
   }
   function startTick() {
     clearInterval(App.tick);
@@ -636,27 +766,75 @@
       });
     }, 1000);
   }
-  function bindBack() {
-    document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => go(b.getAttribute("data-go"))));
+  function coverMedia(prop) {
+    const photos = (prop._photos || App.detail.photos || []).filter(p => String(p).indexOf("data:image/") === 0);
+    const cover = photos[0] || App.covers[prop.id] || null;
+    return cover ? '<img src="'+cover+'" alt="">' : photoArt(prop.art || "house", prop.id);
   }
-  function render() {
-    const r = route();
-    const main = document.getElementById("main");
-    if (r.name === "home") { setNav("home"); main.innerHTML = renderHome(); }
-    else if (r.name === "detail") { setNav("home"); main.innerHTML = renderDetail(r.id); bindDetail(r.id); }
-    else if (r.name === "login") { setNav("login"); main.innerHTML = renderLogin(); bindLogin(); }
-    else if (r.name === "admin") { setNav("admin"); main.innerHTML = renderAdmin(); bindAdmin(); }
-    else if (r.name === "admin-form") { setNav("admin"); main.innerHTML = renderAdminForm(r.id); bindAdminForm(r.id); }
-    else if (r.name === "admin-bids") { setNav("admin"); main.innerHTML = renderAdminBids(r.id); bindAdminBids(r.id); }
-    startTick();
-    window.scrollTo(0, 0);
+  function photoHTML(prop) {
+    const end = remainingParts(prop.endsAt);
+    const videoBadge = youtubeIdOf(prop) ? '<span class="badge video">Video</span>' : "";
+    return '<div class="photo">'+coverMedia(prop)+
+      '<div class="badges">'+statusBadge(prop)+videoBadge+'</div>'+
+      '<div class="countdown-chip" data-testid="countdown" data-end="'+toMillis(prop.endsAt)+'">⏱ '+escapeHtml(end.label)+"</div></div>";
   }
+  function galleryHTML(prop, photos) {
+    const list = (photos || []).filter(p => String(p).indexOf("data:image/") === 0);
+    const slides = list.length
+      ? list.map((src, i) => '<div class="gallery-slide" data-i="'+i+'"><img src="'+src+'" alt="Photo '+(i+1)+'"></div>')
+      : ['<div class="gallery-slide">'+photoArt(prop.art || "house", prop.id)+"</div>"];
+    const end = remainingParts(prop.endsAt);
+    const videoBadge = youtubeIdOf(prop) ? '<span class="badge video">Video</span>' : "";
+    const dots = slides.length > 1 ? '<div class="gallery-dots" data-testid="gallery-dots">'+slides.map((_,i)=>'<span class="'+(i===0?"on":"")+'"></span>').join("")+"</div>" : "";
+    return '<div class="gallery" data-testid="gallery"><div class="gallery-track">'+slides.join("")+"</div>"+
+      '<div class="badges">'+statusBadge(prop)+videoBadge+'</div>'+
+      '<div class="countdown-chip" data-testid="countdown" data-end="'+toMillis(prop.endsAt)+'">⏱ '+escapeHtml(end.label)+"</div>"+dots+"</div>";
+  }
+  function bindGallery() {
+    const track = document.querySelector(".gallery-track");
+    const dots = document.querySelectorAll(".gallery-dots span");
+    if (track && dots.length) {
+      track.addEventListener("scroll", () => {
+        const i = Math.round(track.scrollLeft / Math.max(track.clientWidth, 1));
+        dots.forEach((d, n) => d.classList.toggle("on", n === i));
+      }, { passive: true });
+    }
+  }
+  function thumbsHTML(photos) {
+    if (!photos.length) return '<div class="hint" id="photo-empty">No photos yet.</div><div class="thumbs" id="photo-thumbs" data-testid="photo-thumbs"></div>';
+    return '<div class="thumbs" id="photo-thumbs" data-testid="photo-thumbs">'+photos.map((src,i) =>
+      '<div class="thumb"><img src="'+src+'" alt=""><button type="button" data-remove-photo="'+i+'" aria-label="Remove photo">×</button></div>'
+    ).join("")+"</div>";
+  }
+
+  function profileFormHtml(opts) {
+    opts = opts || {};
+    const name = escapeHtml((App.profile && App.profile.name) || (App.user && App.user.displayName) || "");
+    const phone = escapeHtml((App.profile && App.profile.phone) || "");
+    return '<form id="profile-form" class="card" style="padding:14px" data-form="profile">'+
+      (opts.lead ? '<p class="hint">'+escapeHtml(opts.lead)+"</p>" : "")+
+      '<div class="form-group"><label for="pf-name">Full name</label><input id="pf-name" name="name" type="text" required value="'+name+'" /></div>'+
+      '<div class="form-group"><label for="pf-phone">Mobile number</label><input id="pf-phone" name="phone" type="tel" inputmode="tel" required placeholder="0345-8514492" value="'+phone+'" /><p class="hint">Pakistan mobile, 11 digits starting with 03.</p></div>'+
+      '<button class="btn" type="submit">Save number</button></form>';
+  }
+  function profileNeeded() { return !!(App.user && (!App.profile || !App.profile.phone)); }
+
   function renderHome() {
-    const list = Store.getProperties();
-    const active = list.filter(p => p.status !== "closed" && Date.now() < p.auctionEnd);
-    const other = list.filter(p => !active.includes(p));
+    setSeo({ title: DEFAULT_TITLE, description: DEFAULT_DESC });
+    if (!App.loaded) return '<div class="card"><div class="empty">Loading auctions…</div></div>';
+    if (App.loadError) {
+      const help = "The database is not ready yet. After Firestore, Google sign-in and the security rules are published in Firebase Console, refresh this page.";
+      return '<h2 class="page-title">Live auctions</h2><div class="gold-rule"></div><div class="card"><div class="card-body"><p class="hint">'+escapeHtml(help)+"</p></div></div>";
+    }
+    if (!App.properties.length) {
+      return '<p class="page-sub">Weekly property exchange boli</p><h2 class="page-title">Live auctions</h2><div class="gold-rule"></div>'+
+        '<div class="card"><div class="empty" data-testid="empty-auctions">No auctions yet</div></div>'+
+        '<p class="footer-note">Only the company owner lists properties. You can bid and offer your own property in exchange. Owner names, CNIC and documents are never shown here. Contact '+escapeHtml(CONFIG.phone)+' · '+escapeHtml(CONFIG.company)+'</p>';
+    }
+    const active = App.properties.filter(p => statusOf(p) === "live" || statusOf(p) === "soon");
+    const other = App.properties.filter(p => !(statusOf(p) === "live" || statusOf(p) === "soon"));
     const card = (p) => {
-      const high = Store.currentHighest(p);
+      const high = currentHighestOf(p);
       return '<a class="card property-card" data-testid="property-card" href="#/property/'+encodeURIComponent(p.id)+'">'+
         photoHTML(p)+'<div class="card-body"><h2>'+escapeHtml(p.title)+'</h2>'+
         '<div class="meta">'+escapeHtml(p.city)+' · '+escapeHtml(p.size)+' · '+escapeHtml(p.type)+'</div>'+
@@ -669,29 +847,29 @@
       (other.length ? '<h2 class="section-h">Closed &amp; ended</h2>'+other.map(card).join("") : "")+
       '<p class="footer-note">Only the company owner lists properties. You can bid and offer your own property in exchange. Owner names, CNIC and documents are never shown here. Contact '+escapeHtml(CONFIG.phone)+' · '+escapeHtml(CONFIG.company)+'</p>';
   }
-  function readOfferFromForm() {
-    return {
-      type: (document.getElementById("offer-type") || {}).value,
-      city: (document.getElementById("offer-city") || {}).value,
-      size: (document.getElementById("offer-size") || {}).value,
-      description: (document.getElementById("offer-desc") || {}).value,
-      estimatedValue: (document.getElementById("offer-value") || {}).value
-    };
-  }
-  function renderDetail(id) {
-    const p = Store.getProperty(id);
-    if (!p) return '<button class="back" type="button" data-go="#/">‹  Back</button><div class="empty">Property not found.</div>';
-    const bids = Store.getBids(id);
-    const high = Store.currentHighest(p);
-    const need = Store.minNextBid(p);
-    const session = Store.getSession();
+
+  function renderProperty(id) {
+    const p = App.detail.prop;
+    if (!p) {
+      if (!App.loaded && !App.detail.tried) {
+        setSeo({ title: "Property Auction | Team Work Complex Pvt Ltd" });
+        return '<div class="card"><div class="empty">Loading…</div></div>';
+      }
+      setSeo({ title: "Listing not found | Team Work Complex Pvt Ltd" });
+      return '<button class="back" type="button" data-go="#/">‹  Back</button><div class="empty">Property not found.</div>';
+    }
+    const desc = p.size+" "+p.type+" in "+p.city+". Exchange wanted: "+(p.exchangeWanted || "—")+". Current bid "+formatPKR(currentHighestOf(p))+".";
+    setSeo({ title: p.title+" | Property Auction — Team Work Complex Pvt Ltd", description: desc });
+    const bids = App.detail.bids || [];
+    const high = currentHighestOf(p);
+    const need = minNextBid(p);
     const st = statusOf(p);
     const ended = st === "ended" || st === "closed";
-    const winner = p.winnerBidId ? bids.find(b => b.id === p.winnerBidId) : null;
+    const winner = p.winner || null;
     const hist = bids.length ? '<ul class="history" data-testid="bid-history">'+bids.map((b,i) =>
-      '<li class="'+(i===0?"top":"")+'"><div><span class="who">'+escapeHtml(maskPhone(b.phone))+'</span>'+
+      '<li class="'+(i===0?"top":"")+'"><div><span class="who">'+escapeHtml(b.maskedPhone || maskPhone(""))+'</span>'+
       (b.offer ? '<span class="offer" data-testid="offer-summary">Offers: '+escapeHtml(offerSummary(b.offer))+"</span>" : "")+
-      '<span class="when">'+escapeHtml(formatDate(b.createdAt))+(b.name === "Example bidder" ? " · example" : "")+"</span></div>"+
+      '<span class="when">'+escapeHtml(formatDate(b.createdAt))+"</span></div>"+
       '<div class="amt">'+formatPKR(b.amount)+"</div></li>"
     ).join("")+"</ul>" : '<div class="empty">No bids yet. Be the first.</div>';
     const flash = App.bidFlash || {};
@@ -699,42 +877,50 @@
     let bidBox = "";
     if (st === "closed") {
       bidBox = '<div class="winner-banner" data-testid="winner"><span>Auction closed · Winner</span><strong>'+
-        (winner ? escapeHtml(maskPhone(winner.phone))+" · "+formatPKR(winner.amount) : "No bids were placed")+"</strong>"+
-        (winner && winner.offer ? "<em>Offered: "+escapeHtml(offerSummary(winner.offer))+"</em>" : "")+"</div>";
+        (winner ? escapeHtml(winner.maskedPhone || "")+" · "+formatPKR(winner.amount) : "No bids were placed")+"</strong>"+
+        (winner && winner.offerSummary ? "<em>Offered: "+escapeHtml(winner.offerSummary)+"</em>" : "")+"</div>";
     } else if (ended) {
       bidBox = '<div class="notice">Bidding has ended. The owner will close this auction and confirm the winner.</div>';
+    } else if (!App.user) {
+      bidBox = '<div class="bid-box" data-testid="bid-box"><h3>Place a bid</h3>'+
+        '<div class="min-next">The next bid must be at least <b>'+formatPKR(need)+'</b>.</div>'+
+        '<p class="hint">Sign in with Google to place a bid and describe the property you offer in exchange.</p>'+
+        '<button class="btn" type="button" data-signin="1" data-testid="signin-to-bid">Continue with Google</button></div>';
+    } else if (profileNeeded()) {
+      bidBox = '<div class="bid-box"><h3>Add your mobile number</h3>'+
+        profileFormHtml({ lead: "Your number is shown to the public only as a masked number, e.g. 03xx-xxx-4492. The owner can see the full number." })+
+        "</div>";
     } else {
       bidBox = '<div class="bid-box" data-testid="bid-box"><h3>Place a bid</h3>'+
         '<div class="min-next">Enter at least <b>'+formatPKR(need)+'</b> (current highest + minimum increment of '+formatPKR(p.increment)+'). Also describe the property you offer in exchange.</div>'+
         (flash.error ? '<div class="error-box" data-testid="bid-error">'+escapeHtml(flash.error)+"</div>" : "")+
         (flash.ok ? '<div class="ok-box" data-testid="bid-success">'+escapeHtml(flash.ok)+"</div>" : "")+
-        '<form id="bid-form">'+
+        '<form id="bid-form" data-form="bid" data-id="'+escapeHtml(p.id)+'">'+
         '<div class="form-group"><label for="bid-amount">Your bid (PKR)</label>'+
-        '<input id="bid-amount" data-testid="bid-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="'+need+'" value="'+escapeHtml(keep.amount || "")+'" /></div>'+
+        '<input id="bid-amount" data-testid="bid-amount" name="amount" type="number" min="1" step="1" inputmode="numeric" placeholder="'+need+'" value="'+escapeHtml(keep.amount || "")+'" /></div>'+
         '<div class="offer-legend">Your property offered in exchange</div>'+
-        '<div class="form-group"><label for="offer-type">Type</label><select id="offer-type" data-testid="offer-type">'+
+        '<div class="form-group"><label for="offer-type">Type</label><select id="offer-type" data-testid="offer-type" name="offType">'+
           PROPERTY_TYPES.map(t => '<option'+(keep.type===t?" selected":"")+'>'+t+"</option>").join("")+"</select></div>"+
         '<div class="form-group"><label for="offer-city">City / location</label>'+
-        '<input id="offer-city" data-testid="offer-city" type="text" placeholder="e.g. Gulberg, Lahore" value="'+escapeHtml(keep.city || "")+'" /></div>'+
+        '<input id="offer-city" data-testid="offer-city" name="offCity" type="text" placeholder="e.g. Gulberg, Lahore" value="'+escapeHtml(keep.city || "")+'" /></div>'+
         '<div class="form-group"><label for="offer-size">Size</label>'+
-        '<input id="offer-size" data-testid="offer-size" type="text" placeholder="e.g. 5 Marla" value="'+escapeHtml(keep.size || "")+'" /></div>'+
+        '<input id="offer-size" data-testid="offer-size" name="offSize" type="text" placeholder="e.g. 5 Marla" value="'+escapeHtml(keep.size || "")+'" /></div>'+
         '<div class="form-group"><label for="offer-desc">Short description</label>'+
-        '<textarea id="offer-desc" data-testid="offer-desc" placeholder="A short description of your property">'+escapeHtml(keep.description || "")+"</textarea></div>"+
+        '<textarea id="offer-desc" data-testid="offer-desc" name="offDesc" placeholder="A short description of your property">'+escapeHtml(keep.description || "")+"</textarea></div>"+
         '<div class="form-group"><label for="offer-value">Estimated value (PKR)</label>'+
-        '<input id="offer-value" data-testid="offer-value" type="number" min="1" inputmode="numeric" value="'+escapeHtml(keep.estimatedValue || "")+'" /></div>'+
-        (session.phone
-          ? '<button class="btn" data-testid="bid-submit" type="submit">Place bid</button><p class="hint">Bidding as '+escapeHtml(session.name)+' · '+escapeHtml(maskPhone(session.phone))+'. You cannot list a new auction — only the owner can.</p>'
-          : '<button class="btn" data-testid="bid-login" type="button" id="bid-login">Log in to place a bid</button><p class="hint">Demo login uses your name and mobile number. No OTP is sent.</p>')+
+        '<input id="offer-value" data-testid="offer-value" name="offVal" type="number" min="1" inputmode="numeric" value="'+escapeHtml(keep.estimatedValue || "")+'" /></div>'+
+        '<button class="btn" data-testid="bid-submit" type="submit">Place bid</button>'+
+        '<p class="hint">Bidding as '+escapeHtml((App.profile && App.profile.name) || "")+' · '+escapeHtml(maskPhone(App.profile && App.profile.phone))+'. Your full name and number are visible only to the auction owner. You cannot list a new auction — only the owner can.</p>'+
         "</form></div>";
     }
-    App.bidFlash = null;
-    const video = p.youtubeId
-      ? '<h3 class="section-h">Video</h3><div class="video-wrap" data-testid="youtube-embed"><iframe src="'+youtubeEmbedUrl(p.youtubeId)+'" title="Property video" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>'
+    const ytId = youtubeIdOf(p);
+    const video = ytId
+      ? '<h3 class="section-h">Video</h3><div class="video-wrap" data-testid="youtube-embed"><iframe src="'+youtubeEmbedUrl(ytId)+'" title="Property video" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>'
       : "";
     return '<button class="back" type="button" data-go="#/">‹  All auctions</button>'+
-      '<div class="card">'+galleryHTML(p)+'<div class="card-body">'+
+      '<div class="card">'+galleryHTML(p, App.detail.photos)+'<div class="card-body">'+
       "<h2 class='page-title' style='margin:0'>"+escapeHtml(p.title)+"</h2>"+
-      '<div class="meta">Ends '+escapeHtml(formatDate(p.auctionEnd))+"</div>"+
+      '<div class="meta">Ends '+escapeHtml(formatDate(p.endsAt))+"</div>"+
       '<div class="detail-grid">'+
       '<div class="kv"><span>City</span><b>'+escapeHtml(p.city)+"</b></div>"+
       '<div class="kv"><span>Size</span><b>'+escapeHtml(p.size)+"</b></div>"+
@@ -743,340 +929,381 @@
       '<div class="kv"><span>Current highest</span><b data-testid="highest">'+formatPKR(high)+"</b></div>"+
       '<div class="kv"><span>Min. increment</span><b>'+formatPKR(p.increment)+"</b></div></div>"+
       (p.exchangeWanted ? '<div class="wanted"><strong>Exchange wanted:</strong> '+escapeHtml(p.exchangeWanted)+"</div>" : "")+
+      '<div class="btn-row" style="margin-top:12px"><button type="button" class="btn sm ghost" data-copy-link="1">Copy link</button></div>'+
       "</div></div>"+video+bidBox+
       '<h3 class="section-h">Bid history</h3><div class="card"><div class="card-body">'+hist+"</div></div>"+
       '<p class="footer-note">Owner name, CNIC and documents are not shown on this public auction app.</p>';
   }
-  function bindDetail(id) {
-    bindBack();
-    const track = document.querySelector(".gallery-track");
-    const dots = document.querySelectorAll(".gallery-dots span");
-    if (track && dots.length) {
-      track.addEventListener("scroll", () => {
-        const i = Math.round(track.scrollLeft / Math.max(track.clientWidth, 1));
-        dots.forEach((d, n) => d.classList.toggle("on", n === i));
-      }, { passive: true });
-    }
-    const loginBtn = document.getElementById("bid-login");
-    if (loginBtn) loginBtn.addEventListener("click", () => { App.returnTo = "#/property/"+id; go("#/login"); });
-    const form = document.getElementById("bid-form");
-    if (!form) return;
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const amount = document.getElementById("bid-amount").value;
-      const offer = readOfferFromForm();
-      try {
-        Store.placeBid({ propertyId: id, amount, offer });
-        App.bidFlash = { ok: "Bid placed. You are the current highest bidder." };
-        toast("Bid placed successfully.");
-        render();
-      } catch (err) {
-        App.bidFlash = {
-          error: err.code === "LOW_BID"
-            ? "Bid too low. Enter at least " + formatPKR(err.minNext) + " (current highest + minimum increment)."
-            : err.message,
-          keep: Object.assign({ amount }, offer)
-        };
-        render();
-      }
-    });
-  }
+
   function renderLogin() {
-    const s = Store.getSession();
-    if (s.phone) {
-      return '<h2 class="page-title">Your account</h2><div class="gold-rule"></div>'+
-        '<div class="user-chip"><div><b data-testid="account-name">'+escapeHtml(s.name)+'</b><span data-testid="account-phone">'+escapeHtml(maskPhone(s.phone))+"</span></div>"+
-        '<button class="btn sm ghost" type="button" id="logout-btn" data-testid="logout">Log out</button></div>'+
-        '<p class="hint">This is a demo preview login. You can place bids and offer your property in exchange. You cannot add an auction listing — only the owner can. No password or OTP is used.</p>';
+    setSeo({ title: "Account | Property Auction — Team Work Complex Pvt Ltd" });
+    if (!App.user) {
+      return '<h2 class="page-title">Log in to bid</h2><div class="gold-rule"></div>'+
+        '<div class="notice">Sign in with Google to place bids. You will be asked for a mobile number after signing in. Only the owner can add auction listings.</div>'+
+        '<div class="card" style="padding:14px"><button class="btn" type="button" data-signin="1" data-testid="google-signin">Continue with Google</button></div>';
     }
-    return '<h2 class="page-title">Log in to bid</h2><div class="gold-rule"></div>'+
-      '<div class="notice">Demo login only — enter your name and mobile number. <strong>No OTP is sent.</strong> After login you can bid and describe the property you offer in exchange. Only the owner can add auction listings.</div>'+
-      '<form id="login-form" class="card" style="padding:14px">'+
-      '<div class="form-group"><label for="login-name">Full name</label>'+
-      '<input id="login-name" data-testid="login-name" type="text" autocomplete="name" placeholder="Your name" required /></div>'+
-      '<div class="form-group"><label for="login-phone">Mobile number</label>'+
-      '<input id="login-phone" data-testid="login-phone" type="tel" autocomplete="tel" placeholder="0345-8514492" required />'+
-      '<p class="hint">Pakistan mobile, 11 digits starting with 03.</p></div>'+
-      '<div id="login-error" class="error-box hidden" data-testid="login-error"></div>'+
-      '<button class="btn" data-testid="login-submit" type="submit">Continue</button></form>';
-  }
-  function bindLogin() {
-    const out = document.getElementById("logout-btn");
-    if (out) out.addEventListener("click", () => { Store.logout(); toast("Logged out."); render(); });
-    const form = document.getElementById("login-form");
-    if (!form) return;
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const errEl = document.getElementById("login-error");
-      try {
-        Store.login({ name: document.getElementById("login-name").value, phone: document.getElementById("login-phone").value });
-        toast("Logged in. You can place bids now.");
-        const next = App.returnTo || "#/";
-        App.returnTo = null;
-        go(next);
-      } catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
-    });
+    const name = (App.profile && App.profile.name) || App.user.displayName || "";
+    const phone = App.profile && App.profile.phone;
+    const adminNote = isAdminUser(App.user)
+      ? '<div class="notice">You are signed in as the owner. Open your private admin link to add listings.</div>'
+      : '<p class="hint">Signed in as '+escapeHtml(App.user.email || "")+". You can place bids and offer your property in exchange. You cannot add an auction listing — only the owner can.</p>";
+    if (profileNeeded()) {
+      return '<h2 class="page-title">Your account</h2><div class="gold-rule"></div>'+adminNote+
+        profileFormHtml({ lead: "Add your mobile number so you can bid. The public will only see a masked number." })+
+        '<div class="btn-row" style="margin-top:12px"><button class="btn ghost" type="button" data-signout="1" data-testid="logout">Sign out</button></div>';
+    }
+    return '<h2 class="page-title">Your account</h2><div class="gold-rule"></div>'+
+      '<div class="user-chip"><div><b data-testid="account-name">'+escapeHtml(name)+'</b><span data-testid="account-phone">'+escapeHtml(maskPhone(phone))+"</span></div>"+
+      '<button class="btn sm ghost" type="button" data-signout="1" data-testid="logout">Sign out</button></div>'+
+      adminNote+
+      profileFormHtml({ lead: "Update your name or number." });
   }
 
-  function renderAdmin() {
-    const s = Store.getSession();
-    if (!Store.isAdminSession()) {
-      return '<h2 class="page-title">Owner sign-in</h2><div class="gold-rule"></div>'+
-        '<form id="pin-form" class="card" style="padding:14px">'+
-        '<div class="form-group"><label for="admin-password">Password</label>'+
-        '<input id="admin-password" data-testid="admin-password" type="password" autocomplete="current-password" /></div>'+
-        '<div id="pin-error" class="error-box hidden" data-testid="admin-error"></div>'+
-        '<button class="btn secondary" data-testid="admin-unlock" type="submit">Unlock</button></form>';
-    }
-    const list = Store.getProperties();
-    const items = list.map(p => {
-      const top = Store.highestBid(p.id);
+  function renderAdminHome() {
+    setSeo({ title: "Admin | Property Auction" });
+    const items = App.properties.map(p => {
       const st = statusOf(p);
-      const nBids = Store.getBids(p.id).length;
-      return '<div class="card admin-list" data-testid="admin-property" data-id="'+p.id+'"><div class="card-body">'+
+      const high = currentHighestOf(p);
+      return '<div class="card admin-list" data-testid="admin-property" data-id="'+escapeHtml(p.id)+'"><div class="card-body">'+
         '<div class="row"><div><h3>'+escapeHtml(p.title)+"</h3>"+
         '<div class="meta">'+escapeHtml(p.city)+' · '+escapeHtml(p.size)+' · '+st+
-        (top ? " · high "+formatPKR(top.amount) : "")+" · "+nBids+" bid"+(nBids===1?"":"s")+
-        (p.youtubeId ? " · video" : "")+"</div></div>"+statusBadge(p)+"</div>"+
+        " · high "+formatPKR(high)+
+        (youtubeIdOf(p) ? " · video" : "")+"</div></div>"+statusBadge(p)+"</div>"+
         '<div class="admin-actions">'+
-        '<button class="btn sm ghost" type="button" data-edit="'+p.id+'">Edit</button>'+
-        '<button class="btn sm ghost" type="button" data-testid="view-bids" data-bids="'+p.id+'">Bids</button>'+
+        '<button class="btn sm ghost" type="button" data-go="'+adminPath("edit/"+encodeURIComponent(p.id))+'">Edit</button>'+
+        '<button class="btn sm ghost" type="button" data-testid="view-bids" data-go="'+adminPath("bids/"+encodeURIComponent(p.id))+'">Bids</button>'+
         (p.status !== "closed"
-          ? '<button class="btn sm secondary" type="button" data-testid="close-auction" data-close="'+p.id+'">Close</button>'
-          : '<span class="hint" data-testid="winner">Winner: '+(top ? escapeHtml(maskPhone(top.phone))+" · "+formatPKR(top.amount) : "No bids")+"</span>")+
-        '<button class="btn sm danger" type="button" data-testid="delete-property" data-delete="'+p.id+'">Delete</button>'+
+          ? '<button class="btn sm secondary" type="button" data-testid="close-auction" data-go="'+adminPath("bids/"+encodeURIComponent(p.id))+'">Close</button>'
+          : '<span class="hint" data-testid="winner">Closed'+(p.winner ? ": "+escapeHtml(p.winner.maskedPhone || "")+" · "+formatPKR(p.winner.amount) : "")+"</span>")+
+        '<button class="btn sm danger" type="button" data-testid="delete-property" data-delete="'+escapeHtml(p.id)+'">Delete</button>'+
         "</div></div></div>";
-    }).join("");
+    }).join("") || '<div class="card"><div class="empty">No auctions yet</div></div>';
     return '<h2 class="page-title">Admin panel</h2><div class="gold-rule"></div>'+
       '<div class="notice">You are signed in as the owner. Only you can add, edit or delete listings, attach photos and a YouTube video, and confirm a winner. Other people can only bid.</div>'+
-      '<div class="btn-row"><button class="btn" type="button" data-testid="admin-add" id="admin-add">Add property</button>'+
-      '<button class="btn secondary" type="button" data-testid="export-csv" id="export-csv">Export CSV</button></div>'+
-      '<div style="height:12px"></div>'+items+
-      '<div class="btn-row" style="margin-top:8px"><button class="btn sm ghost" type="button" id="reset-demo" data-testid="reset-demo">Reset demo data</button>'+
-      '<button class="btn sm danger" type="button" id="lock-admin" data-testid="admin-logout">Log out</button></div>';
+      '<div class="btn-row"><button class="btn" type="button" data-testid="admin-add" data-go="'+adminPath("new")+'">Add property</button></div>'+
+      '<div style="height:12px"></div>'+items;
   }
-  function bindAdmin() {
-    const pinForm = document.getElementById("pin-form");
-    if (pinForm) {
-      pinForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const errEl = document.getElementById("pin-error");
-        try {
-          await Store.unlockAdmin(document.getElementById("admin-password").value);
-          toast("Signed in.");
-          render();
-        } catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
-      });
-      return;
-    }
-    document.getElementById("admin-add").addEventListener("click", () => goAdmin("new"));
-    document.getElementById("export-csv").addEventListener("click", exportCsv);
-    document.getElementById("lock-admin").addEventListener("click", () => { Store.lockAdmin(); toast("Signed out."); go("#/"); });
-    document.getElementById("reset-demo").addEventListener("click", () => {
-      if (confirm("Reset all demo properties and bids? This only affects this browser.")) {
-        Store.resetDemo(); toast("Demo data reset."); render();
-      }
-    });
-    document.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => goAdmin("edit/"+b.getAttribute("data-edit"))));
-    document.querySelectorAll("[data-bids]").forEach(b => b.addEventListener("click", () => goAdmin("bids/"+b.getAttribute("data-bids"))));
-    document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => goAdmin("bids/"+b.getAttribute("data-close"))));
-    document.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", () => {
-      const id = b.getAttribute("data-delete");
-      const p = Store.getProperty(id);
-      if (!confirm("Delete “"+(p && p.title)+"” and all of its bids? This cannot be undone in this preview.")) return;
-      try { Store.deleteProperty(id); toast("Property deleted."); render(); }
-      catch (err) { toast(err.message); }
-    }));
-  }
-  function toLocalInput(ts) {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: CONFIG.tz, year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hour12: false
-    }).formatToParts(new Date(ts));
-    const get = t => parts.find(p => p.type === t).value;
-    let hour = get("hour"); if (hour === "24") hour = "00";
-    return get("year")+"-"+get("month")+"-"+get("day")+"T"+hour+":"+get("minute");
-  }
-  function fromLocalInput(value) {
-    if (!value) return NaN;
-    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    if (!m) return new Date(value).getTime();
-    return new Date(m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":00+05:00").getTime();
-  }
-  function thumbsHTML(photos) {
-    if (!photos.length) return '<div class="hint" id="photo-empty">No photos yet.</div><div class="thumbs" id="photo-thumbs" data-testid="photo-thumbs"></div>';
-    return '<div class="thumbs" id="photo-thumbs" data-testid="photo-thumbs">'+photos.map((src,i) =>
-      '<div class="thumb"><img src="'+src+'" alt=""><button type="button" data-remove-photo="'+i+'" aria-label="Remove photo">×</button></div>'
-    ).join("")+"</div>";
-  }
+
   function renderAdminForm(id) {
-    const s = Store.getSession();
-    if (!Store.isAdminSession()) return renderAdmin();
-    const p = id ? Store.getProperty(id) : null;
-    if (id && !p) return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button><div class="empty">Property not found.</div>';
+    setSeo({ title: (id ? "Edit property" : "Add property") + " | Admin" });
+    const p = id ? (App.properties.find(x => x.id === id) || App.detail.prop) : null;
+    if (id && !p) return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button><div class="empty">Loading…</div>';
+    if (id && App.photosEditId !== id) {
+      if (App.detail.prop && App.detail.prop.id === id) {
+        App.photos = (App.detail.photos || []).slice();
+        App.photosEditId = id;
+      }
+    }
+    if (!id && App.photosEditId !== "new") { App.photos = []; App.photosEditId = "new"; }
     const arts = ["house","plot","shop","farm"];
-    const yt = p && p.youtubeId ? "https://youtu.be/"+p.youtubeId : "";
-    App.photos = p && p.photos ? p.photos.slice() : [];
+    const yt = p && p.youtubeUrl ? p.youtubeUrl : "";
     return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button>'+
-      '<h2 class="page-title">'+(p ? "Edit property" : "Add property")+'</h2><div class="gold-rule"></div>'+
-      '<form id="prop-form" class="card" style="padding:14px">'+
-      '<div class="form-group"><label for="f-title">Title</label><input id="f-title" data-testid="f-title" type="text" required value="'+escapeHtml(p?p.title:"")+'" /></div>'+
-      '<div class="form-group"><label for="f-city">City</label><input id="f-city" data-testid="f-city" type="text" required value="'+escapeHtml(p?p.city:"")+'" /></div>'+
-      '<div class="form-group"><label for="f-size">Size</label><input id="f-size" data-testid="f-size" type="text" required placeholder="10 Marla" value="'+escapeHtml(p?p.size:"")+'" /></div>'+
-      '<div class="form-group"><label for="f-type">Type</label><select id="f-type" data-testid="f-type">'+
+      '<h2 class="page-title">'+(id ? "Edit property" : "Add property")+'</h2><div class="gold-rule"></div>'+
+      '<form id="prop-form" class="card" style="padding:14px" data-form="property" data-id="'+escapeHtml(id || "")+'">'+
+      '<div class="form-group"><label for="f-title">Title</label><input id="f-title" data-testid="f-title" name="title" type="text" required value="'+escapeHtml(p?p.title:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-city">City</label><input id="f-city" data-testid="f-city" name="city" type="text" required value="'+escapeHtml(p?p.city:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-size">Size</label><input id="f-size" data-testid="f-size" name="size" type="text" required placeholder="10 Marla" value="'+escapeHtml(p?p.size:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-type">Type</label><select id="f-type" data-testid="f-type" name="type">'+
         PROPERTY_TYPES.map(t => '<option'+(p && p.type===t?" selected":"")+'>'+t+"</option>").join("")+"</select></div>"+
-      '<div class="form-group"><label for="f-wanted">Exchange wanted</label><textarea id="f-wanted" data-testid="f-wanted">'+escapeHtml(p?p.exchangeWanted:"")+"</textarea></div>"+
-      '<div class="form-group"><label for="f-min">Minimum bid (PKR)</label><input id="f-min" data-testid="f-min" type="number" min="1" required value="'+(p?p.minBid:"")+'" /></div>'+
-      '<div class="form-group"><label for="f-inc">Minimum increment (PKR)</label><input id="f-inc" data-testid="f-inc" type="number" min="1" required value="'+(p?p.increment:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-wanted">Exchange wanted</label><textarea id="f-wanted" data-testid="f-wanted" name="exchangeWanted">'+escapeHtml(p?p.exchangeWanted:"")+"</textarea></div>"+
+      '<div class="form-group"><label for="f-min">Minimum bid (PKR)</label><input id="f-min" data-testid="f-min" name="minBid" type="number" min="1" required value="'+(p?p.minBid:"")+'" /></div>'+
+      '<div class="form-group"><label for="f-inc">Minimum increment (PKR)</label><input id="f-inc" data-testid="f-inc" name="increment" type="number" min="1" required value="'+(p?p.increment:"")+'" /></div>'+
       '<div class="form-group"><label for="f-end">Auction end time (Pakistan time)</label>'+
-      '<input id="f-end" data-testid="f-end" type="datetime-local" required value="'+(p?toLocalInput(p.auctionEnd):"")+'" /></div>'+
-      '<div class="form-group"><label for="f-art">Placeholder style (used if there is no photo)</label><select id="f-art">'+
+      '<input id="f-end" data-testid="f-end" name="auctionEnd" type="datetime-local" required value="'+(p?toLocalInput(p.endsAt):"")+'" /></div>'+
+      '<div class="form-group"><label for="f-art">Placeholder style (used if there is no photo)</label><select id="f-art" name="art">'+
         arts.map(a => '<option value="'+a+'"'+(p && p.art===a?" selected":"")+'>'+a+"</option>").join("")+"</select></div>"+
-      '<div class="form-group"><label for="f-photos">Photos (you can add more than one)</label>'+
+      '<div class="form-group"><label for="f-photos">Photos (up to 4, compressed)</label>'+
       '<input id="f-photos" data-testid="f-photos" type="file" accept="image/*" multiple />'+
-      '<p class="hint">Up to '+CONFIG.maxPhotos+' photos. They are resized and stored only in this browser for the demo.</p>'+
+      '<p class="hint">Up to '+CONFIG.maxPhotos+' photos, about 150 KB each. Stored in the listing so a paid Storage plan is not required.</p>'+
       '<div id="thumbs-wrap">'+thumbsHTML(App.photos)+"</div></div>"+
       '<div class="form-group"><label for="f-youtube">YouTube video (optional)</label>'+
-      '<input id="f-youtube" data-testid="f-youtube" type="url" inputmode="url" placeholder="https://youtu.be/… or youtube.com/watch?v=…" value="'+escapeHtml(yt)+'" />'+
+      '<input id="f-youtube" data-testid="f-youtube" name="youtubeUrl" type="url" inputmode="url" placeholder="https://youtu.be/… or youtube.com/watch?v=…" value="'+escapeHtml(yt)+'" />'+
       '<p class="hint">Paste a YouTube watch, youtu.be, Shorts or embed link. Other sites are not allowed.</p></div>'+
       '<div id="form-error" class="error-box hidden" data-testid="form-error"></div>'+
-      '<button class="btn" data-testid="save-property" type="submit">'+(p?"Save changes":"Add property")+"</button></form>";
+      '<button class="btn" data-testid="save-property" type="submit">'+(id?"Save changes":"Add property")+"</button></form>";
   }
-  function bindAdminForm(id) {
-    bindBack();
-    if (!Store.isAdminSession()) { bindAdmin(); return; }
-    const refreshThumbs = () => {
-      document.getElementById("thumbs-wrap").innerHTML = thumbsHTML(App.photos);
-      document.querySelectorAll("[data-remove-photo]").forEach(btn => {
-        btn.addEventListener("click", () => { App.photos.splice(Number(btn.getAttribute("data-remove-photo")), 1); refreshThumbs(); });
-      });
-    };
-    refreshThumbs();
-    document.getElementById("f-photos").addEventListener("change", async (e) => {
-      const files = Array.from(e.target.files || []);
-      for (const file of files) {
-        if (App.photos.length >= CONFIG.maxPhotos) { toast("Maximum "+CONFIG.maxPhotos+" photos."); break; }
-        try { App.photos.push(await compressImage(file)); }
-        catch (err) { toast("Could not read that image."); }
-      }
-      e.target.value = "";
-      refreshThumbs();
-    });
-    document.getElementById("prop-form").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const errEl = document.getElementById("form-error");
-      try {
-        const saved = Store.saveProperty({
-          id: id || undefined,
-          title: document.getElementById("f-title").value,
-          city: document.getElementById("f-city").value,
-          size: document.getElementById("f-size").value,
-          type: document.getElementById("f-type").value,
-          exchangeWanted: document.getElementById("f-wanted").value,
-          minBid: document.getElementById("f-min").value,
-          increment: document.getElementById("f-inc").value,
-          auctionEnd: fromLocalInput(document.getElementById("f-end").value),
-          art: document.getElementById("f-art").value,
-          photos: App.photos.slice(),
-          youtubeUrl: document.getElementById("f-youtube").value
-        });
-        toast(id ? "Property updated." : "Property added.");
-        go("#/property/"+saved.id);
-      } catch (err) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
-    });
-  }
+
   function renderAdminBids(id) {
-    const s = Store.getSession();
-    if (!Store.isAdminSession()) return renderAdmin();
-    const p = Store.getProperty(id);
-    if (!p) return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button><div class="empty">Property not found.</div>';
-    const bids = Store.getBids(id);
+    setSeo({ title: "Bids | Admin" });
+    const p = App.detail.prop;
+    if (!p) return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button><div class="empty">Loading…</div>';
+    const bids = App.detail.bids || [];
+    const priv = App.detail.privateMap || {};
     const closed = p.status === "closed";
-    const winner = p.winnerBidId ? bids.find(b => b.id === p.winnerBidId) : null;
     const list = bids.length ? bids.map((b, i) => {
+      const pr = priv[b.id] || {};
       const o = b.offer || {};
       return '<div class="admin-bid" data-testid="admin-bid"><label class="pick">'+
-        (closed ? "" : '<input type="radio" name="winner" value="'+b.id+'" data-testid="winner-pick" '+(i===0?"checked":"")+' />')+
+        (closed ? "" : '<input type="radio" name="winner" value="'+escapeHtml(b.id)+'" data-testid="winner-pick" '+(i===0?"checked":"")+' />')+
         '<div><b>'+formatPKR(b.amount)+(i===0?" · highest":"")+"</b>"+
         '<div class="full" data-testid="admin-bid-full">'+
-        escapeHtml(b.name)+" · "+escapeHtml(b.phone)+"<br>"+
-        (b.offer ? "Offers: "+escapeHtml(o.type)+", "+escapeHtml(o.size)+", "+escapeHtml(o.city)+" · Est. "+formatPKR(o.estimatedValue)+"<br>"+escapeHtml(o.description) : "No exchange property details")+
+        escapeHtml(pr.name || "—")+" · "+escapeHtml(pr.phone || b.maskedPhone || "—")+"<br>"+
+        (b.offer ? "Offers: "+escapeHtml(o.type)+", "+escapeHtml(o.size)+", "+escapeHtml(o.city)+" · Est. "+formatPKR(o.estValue)+"<br>"+escapeHtml(o.desc) : "No exchange property details")+
         "<br>"+escapeHtml(formatDate(b.createdAt))+"</div></div></label></div>";
     }).join("") : '<div class="empty">No bids yet.</div>';
     return '<button class="back" type="button" data-go="'+adminPath()+'">‹  Back</button>'+
       '<h2 class="page-title">Bids · '+escapeHtml(p.title)+'</h2><div class="gold-rule"></div>'+
       (closed
         ? '<div class="winner-banner" data-testid="winner"><span>Confirmed winner</span><strong>'+
-          (winner ? escapeHtml(winner.name)+" · "+escapeHtml(winner.phone)+" · "+formatPKR(winner.amount) : "No bids")+"</strong>"+
-          (winner && winner.offer ? "<em>"+escapeHtml(offerSummary(winner.offer))+"</em>" : "")+"</div>"
-        : '<div class="notice">The highest bid is selected by default. Confirm the winner, or pick another bid first.</div>')+
-      '<form id="close-form" class="card" style="padding:14px" data-testid="close-form">'+list+
-      (closed ? "" : '<button class="btn secondary" style="margin-top:12px" type="submit" data-testid="confirm-winner">'+(bids.length?"Confirm winner & close auction":"Close auction with no bids")+"</button>")+
-      "</form>";
+          (p.winner ? escapeHtml(p.winner.maskedPhone || "")+" · "+formatPKR(p.winner.amount) : "No bids")+"</strong>"+
+          (p.winner && p.winner.offerSummary ? "<em>"+escapeHtml(p.winner.offerSummary)+"</em>" : "")+"</div>"
+        : "")+
+      '<div class="card" style="padding:14px">'+list+"</div>"+
+      (closed ? "" : '<div class="btn-row" style="margin-top:12px"><button class="btn" type="button" data-close="'+escapeHtml(p.id)+'" data-testid="confirm-winner">Close auction and confirm winner</button></div>');
   }
-  function bindAdminBids(id) {
-    bindBack();
-    if (!Store.isAdminSession()) { bindAdmin(); return; }
-    const form = document.getElementById("close-form");
-    if (!form || Store.getProperty(id).status === "closed") return;
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const picked = (form.querySelector('input[name="winner"]:checked') || {}).value;
-      const p = Store.getProperty(id);
-      if (!confirm("Close this auction and confirm the winner for “"+p.title+"”?")) return;
+
+  function htmlForRoute() {
+    const r = route();
+    if (r.name === "auth-wait") return '<div class="card"><div class="empty">Loading…</div></div>';
+    if (r.name === "property") return renderProperty(r.id);
+    if (r.name === "login") return renderLogin();
+    if (r.name === "admin") return renderAdminHome();
+    if (r.name === "admin-form") return renderAdminForm(r.id);
+    if (r.name === "admin-bids") return renderAdminBids(r.id);
+    return renderHome();
+  }
+
+  function updateLiveBits() {
+    const p = App.detail.prop;
+    if (p) {
+      document.querySelectorAll('[data-testid="highest"]').forEach(el => { el.textContent = formatPKR(currentHighestOf(p)); });
+    }
+    startTick();
+  }
+
+  function render(opts) {
+    const main = document.getElementById("main");
+    const active = document.activeElement;
+    const typing = !opts || !opts.force
+      ? (active && main.contains(active) && /INPUT|TEXTAREA|SELECT/.test(active.tagName))
+      : false;
+    if (typing) { updateLiveBits(); return; }
+    main.innerHTML = htmlForRoute();
+    setNav();
+    startTick();
+    bindGallery();
+  }
+
+  function clearDetailSubs() {
+    /* detail listeners live in App.unsubs after the properties listener; restart only detail */
+  }
+
+  let detailUnsubs = [];
+  function stopDetail() {
+    detailUnsubs.forEach(fn => { try { fn(); } catch (e) {} });
+    detailUnsubs = [];
+  }
+  function listenDetailTracked(id) {
+    stopDetail();
+    App.detail = { prop: null, photos: [], bids: [], privateMap: {}, id: id };
+    const push = (u) => { detailUnsubs.push(u); };
+    push(onSnapshot(doc(db, "properties", id), (snap) => {
+      App.detail.prop = snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
+      App.detail.tried = true;
+      render();
+    }, () => { App.detail.prop = null; App.detail.tried = true; render(); }));
+    push(onSnapshot(collection(db, "properties", id, "photos"), (snap) => {
+      const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()))
+        .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+      App.detail.photos = rows.map(r => r.dataUrl).filter(Boolean);
+      if (rows[0] && rows[0].dataUrl) App.covers[id] = rows[0].dataUrl;
+      if (route().name === "admin-form" && App.photosEditId === id && !document.activeElement) {
+        /* don't clobber in-progress photo edits */
+      }
+      render();
+    }));
+    push(onSnapshot(collection(db, "properties", id, "bids"), (snap) => {
+      App.detail.bids = snap.docs.map(d => Object.assign({ id: d.id }, d.data()))
+        .sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+      render();
+    }));
+    if (isAdminUser(App.user)) {
+      push(onSnapshot(collection(db, "properties", id, "bidPrivate"), (snap) => {
+        const map = {};
+        snap.docs.forEach(d => { map[d.id] = d.data(); });
+        App.detail.privateMap = map;
+        if (route().name === "admin-bids") render();
+      }));
+    }
+  }
+
+  function ensureRouteData() {
+    const r = route();
+    const needDetail = (r.name === "property" || r.name === "admin-bids" || (r.name === "admin-form" && r.id)) && r.id;
+    if (needDetail) {
+      if (App.detail.id !== r.id) listenDetailTracked(r.id);
+    } else {
+      stopDetail();
+      App.detail = { prop: null, photos: [], bids: [], privateMap: {} };
+    }
+  }
+
+  function onHash() {
+    App.bidFlash = null;
+    const r = route();
+    if (r.name !== "admin-form") { App.photos = []; App.photosEditId = null; }
+    ensureRouteData();
+    render({ force: true });
+  }
+
+  document.addEventListener("click", async (e) => {
+    const nav = e.target.closest("[data-nav]");
+    if (nav) {
+      const key = nav.getAttribute("data-nav");
+      go(key === "home" ? "#/" : "#/login");
+      return;
+    }
+    const goBtn = e.target.closest("[data-go]");
+    if (goBtn) { go(goBtn.getAttribute("data-go")); return; }
+    const signin = e.target.closest("[data-signin]");
+    if (signin) {
       try {
-        const res = Store.closeAuction(id, picked || undefined);
-        const msg = res.winner
-          ? "Auction closed. Winner: " + res.winner.name + " · " + maskPhone(res.winner.phone) + " with " + formatPKR(res.winner.amount)
-          : "Auction closed. No bids were placed.";
-        toast(msg); render();
-      } catch (err) { toast(err.message); }
-    });
-  }
-  function compressImage(file, maxW, quality) {
-    maxW = maxW || 800; quality = quality || 0.72;
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const scale = Math.min(1, maxW / img.width);
-        const c = document.createElement("canvas");
-        c.width = Math.max(1, Math.round(img.width * scale));
-        c.height = Math.max(1, Math.round(img.height * scale));
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        resolve(c.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
-      img.src = url;
-    });
-  }
-  function exportCsv() {
-    const rows = Store.exportResults();
-    const csv = rows.map(r => r.map(cell => {
-      const s = String(cell ?? "");
-      return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
-    }).join(",")).join("\n");
-    const blob = new Blob(["\ufeff"+csv], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "twc-auction-results.csv";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    toast("CSV downloaded.");
-  }
-  document.querySelectorAll(".nav button").forEach(b => {
-    b.addEventListener("click", () => {
-      const n = b.getAttribute("data-nav");
-      go(n === "home" ? "#/" : "#/"+n);
-    });
+        const r = route();
+        if (r.name === "property") App.returnTo = location.hash;
+        await signInGoogle();
+      } catch (err) { toast(err.message || "Could not sign in."); }
+      return;
+    }
+    const signout = e.target.closest("[data-signout]");
+    if (signout) { await signOutUser(); toast("Signed out."); render({ force: true }); return; }
+    const copy = e.target.closest("[data-copy-link]");
+    if (copy) {
+      try { await navigator.clipboard.writeText(location.href); toast("Link copied."); }
+      catch (err) { toast(location.href); }
+      return;
+    }
+    const del = e.target.closest("[data-delete]");
+    if (del) {
+      if (!confirm("Delete this property and all of its bids? This cannot be undone.")) return;
+      try { await deleteProperty(del.getAttribute("data-delete")); toast("Property deleted."); go(adminPath()); }
+      catch (err) { toast(err.message || "Could not delete."); }
+      return;
+    }
+    const closeBtn = e.target.closest("[data-close]");
+    if (closeBtn) {
+      const id = closeBtn.getAttribute("data-close");
+      const chosen = document.querySelector('input[name="winner"]:checked');
+      try {
+        await closeAuction(id, chosen ? chosen.value : null);
+        toast("Auction closed.");
+        render({ force: true });
+      } catch (err) { toast(err.message || "Could not close auction."); }
+      return;
+    }
+    const rem = e.target.closest("[data-remove-photo]");
+    if (rem) {
+      App.photos.splice(Number(rem.getAttribute("data-remove-photo")), 1);
+      const wrap = document.getElementById("thumbs-wrap");
+      if (wrap) wrap.innerHTML = thumbsHTML(App.photos);
+      return;
+    }
   });
-  window.addEventListener("hashchange", render);
+
+  document.addEventListener("change", async (e) => {
+    if (e.target && e.target.id === "f-photos") {
+      const files = Array.from(e.target.files || []);
+      e.target.value = "";
+      for (const f of files) {
+        if (App.photos.length >= CONFIG.maxPhotos) { toast("You can add up to 4 photos."); break; }
+        try {
+          const data = await compressImage(f);
+          App.photos.push(data);
+        } catch (err) { toast(err.message || "Could not add that photo."); }
+      }
+      const wrap = document.getElementById("thumbs-wrap");
+      if (wrap) wrap.innerHTML = thumbsHTML(App.photos);
+    }
+  });
+
+  document.addEventListener("submit", async (e) => {
+    const form = e.target.closest("form[data-form]");
+    if (!form) return;
+    e.preventDefault();
+    const kind = form.getAttribute("data-form");
+    try {
+      if (kind === "profile") {
+        const fd = new FormData(form);
+        await saveProfile({ name: fd.get("name"), phone: fd.get("phone") });
+        toast("Number saved.");
+        if (App.returnTo) { const h = App.returnTo; App.returnTo = null; go(h); }
+        else render({ force: true });
+        return;
+      }
+      if (kind === "bid") {
+        const fd = new FormData(form);
+        const id = form.getAttribute("data-id");
+        const offerKeep = { type: fd.get("offType"), city: fd.get("offCity"), size: fd.get("offSize"), description: fd.get("offDesc"), estimatedValue: fd.get("offVal") };
+        try {
+          await placeBid({
+            propertyId: id,
+            amount: fd.get("amount"),
+            offer: { type: fd.get("offType"), city: fd.get("offCity"), size: fd.get("offSize"), desc: fd.get("offDesc"), estValue: fd.get("offVal") }
+          });
+          App.bidFlash = { ok: "Bid placed. You are the current highest bidder." };
+          toast("Bid placed successfully.");
+          render({ force: true });
+        } catch (err) {
+          App.bidFlash = {
+            error: err && err.code === "LOW_BID"
+              ? "Bid too low. Enter at least " + formatPKR(err.minNext) + " (current highest + minimum increment)."
+              : (err.message || "This bid could not be placed."),
+            keep: Object.assign({ amount: fd.get("amount") }, offerKeep)
+          };
+          render({ force: true });
+        }
+        return;
+      }
+      if (kind === "property") {
+        const fd = new FormData(form);
+        const ms = fromLocalInput(fd.get("auctionEnd"));
+        const id = form.getAttribute("data-id") || null;
+        try {
+          await saveProperty({
+            id: id || undefined,
+            title: fd.get("title"),
+            city: fd.get("city"),
+            size: fd.get("size"),
+            type: fd.get("type"),
+            exchangeWanted: fd.get("exchangeWanted"),
+            minBid: fd.get("minBid"),
+            increment: fd.get("increment"),
+            auctionEnd: ms,
+            youtubeUrl: fd.get("youtubeUrl"),
+            art: fd.get("art"),
+            photos: App.photos.slice()
+          });
+          toast("Property saved.");
+          App.photos = [];
+          App.photosEditId = null;
+          go(adminPath());
+        } catch (err) {
+          const box = document.getElementById("form-error");
+          if (box) { box.textContent = err.message || "Could not save."; box.classList.remove("hidden"); }
+          else toast(err.message || "Could not save.");
+        }
+        return;
+      }
+    } catch (err) {
+      toast(err.message || "Something went wrong.");
+    }
+  });
+
+  function bootAuth() {
+    getRedirectResult(auth).catch(() => {});
+    onAuthStateChanged(auth, async (user) => {
+      App.user = user;
+      App.authReady = true;
+      try { await loadProfile(user); } catch (e) { /* rules may not be published yet */ }
+      ensureRouteData();
+      render({ force: true });
+    });
+  }
+
+  listenProperties();
+  window.addEventListener("hashchange", onHash);
+  bootAuth();
+  ensureRouteData();
   render();
-  window.__TWC_AUCTION__ = {
-    Store, formatPKR, maskPhone, remainingParts, parseYouTubeId, youtubeEmbedUrl,
-    offerSummary, normalizeOffer, resetDemo: () => Store.resetDemo(), CONFIG, ADMIN_UID
-  };
   </script>
 </body>
 </html>
