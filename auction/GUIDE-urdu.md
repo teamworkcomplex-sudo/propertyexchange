@@ -1,124 +1,88 @@
-# پراپرٹی بولی ایپ — آن لائن لگانے کا طریقہ
+# پراپرٹی بولی ایپ — Firebase جوڑنے کا طریقہ
 
-یہ پیش نظارہ (preview) ابھی آپ کے کمپیوٹر پر آف لائن چلتی ہے۔ ڈیٹا صرف اسی براؤزر میں رہتا ہے۔ جب آپ ایپ کو لوگوں کے لیے آن لائن کھولنا چاہیں، نیچے والا طریقہ اپنائیں۔ اس گائیڈ میں کوئی اکاؤنٹ آپ کے لیے نہیں بنایا گیا۔
+پروجیکٹ **Property Auctions** (`property-auctions`) پہلے سے بن چکا ہے، اور ایپ کا کوڈ اس سے جڑ چکا ہے۔ اب باقی کام Firebase Console میں آپ کے Google اکاؤنٹ سے کرنا ہے، ورنہ ایپ ڈیٹا نہیں دکھا سکے گی۔
 
-لائیو ایپ پر **مالک کا نام، شناختی کارڈ یا کاغذات** کبھی نہ ڈالیں — عوامی بولی میں صرف پراپرٹی کی بنیادی تفصیل اور بولی دکھائیں۔
+لائیو ایپ پر **مالک کا نام، شناختی کارڈ یا کاغذات** کبھی نہ ڈالیں۔ عوام کو صرف پراپرٹی کی بنیادی تفصیل، تصویریں / یوٹیوب ویڈیو، اور بولی نظر آتی ہے۔ بولی دینے والے کا پورا نام اور فون صرف آپ (ایڈمن) کو دکھتا ہے، عوام کو صرف چھپا ہوا نمبر نظر آتا ہے مثلاً `03xx-xxx-4492`۔
 
----
-
-## 1. مفت Firebase پروجیکٹ بنائیں
-
-1. براؤزر میں [https://console.firebase.google.com](https://console.firebase.google.com) کھولیں اور اپنے Google اکاؤنٹ سے لاگ ان کریں۔
-2. **Add project** دبائیں، نام رکھیں مثلاً `twc-property-auction`۔
-3. Google Analytics کو بند رکھ سکتے ہیں۔ **Create project** دبائیں۔
+ایڈمن کا خفیہ لنک عوامی گائیڈ میں نہیں لکھا۔ وہ صرف `ADMIN-SECRET.txt` فائل میں ہے، اسے کسی کے ساتھ شیئر نہ کریں اور اسے GitHub پر اپ لوڈ نہ کریں۔
 
 ---
 
-## 2. Firestore آن کریں
+## 1. Firestore آن کریں
 
-1. بائیں مینو میں **Build → Firestore Database** کھولیں۔
-2. **Create database** دبائیں، **Start in production mode** منتخب کریں۔
-3. Location کے لیے **asia-south1** (ممبئی) مناسب ہے۔ **Enable** کریں۔
+1. [Firebase Console](https://console.firebase.google.com/) کھولیں اور `teamworkcomplex@gmail.com` سے لاگ ان کریں۔
+2. پروجیکٹ **Property Auctions** کھولیں۔
+3. بائیں مینو میں **Build → Firestore Database** کھولیں۔
+4. **Create database** دبائیں، **Start in production mode** منتخب کریں۔
+5. Location کے لیے **asia-south1** (ممبئی) مناسب ہے۔ **Enable** کریں۔
 
 ---
 
-## 3. فون لاگ ان (Phone Authentication) آن کریں
+## 2. Google سائن اِن آن کریں
 
 1. **Build → Authentication → Get started** کھولیں۔
-2. **Sign-in method** میں **Phone** کو **Enable** کر کے Save کریں۔
-3. شروع میں **Phone → Phone numbers for testing** میں اپنے ٹیسٹ نمبرز ڈال سکتے ہیں، تاکہ اصلی SMS نہ جائے۔
+2. **Sign-in method** میں **Google** کو **Enable** کر کے Save کریں۔ Support email اپنے Gmail پر رکھیں۔
+3. **Authentication → Settings → Authorized domains** میں یہ ڈومین شامل کریں (اگر پہلے سے نہ ہو):
 
-**نوٹ:** اصل SMS بھیجنے کے لیے بعد میں Google Blaze (بلنگ) اکاؤنٹ درکار ہو سکتا ہے۔ ٹیسٹ نمبرز مفت رہتے ہیں۔
+   `teamworkcomplex-sudo.github.io`
+
+4. مقامی طور پر فائل کھولنے سے Google سائن اِن عموماً نہیں چلتا۔ ایپ کو GitHub Pages یا کسی اور https لنک پر چلائیں۔
 
 ---
 
-## 4. سکیورٹی رولز — صرف ایک ایڈمن (ضرور لگائیں)
+## 3. سکیورٹی رولز چسپاں کر کے Publish کریں
 
-Firestore میں **Rules** ٹیپ کھولیں، نیچے والا متن مکمل چسپاں کر کے **Publish** کریں۔
-
-ایڈمن صرف آپ ہوں گے۔ طریقہ:
-
-1. Authentication میں اپنے فون نمبر سے ایک بار لاگ ان کریں۔
-2. اس یوزر کا **UID** کاپی کریں۔
-3. نیچے رولز میں `PASTE_YOUR_ADMIN_UID_HERE` کی جگہ وہی UID لکھیں۔
-4. وہی UID `index.html` میں `ADMIN_UID` پر بھی چسپاں کریں۔
+1. Firebase Console میں **Build → Firestore Database → Rules** کھولیں۔
+2. اسی فولڈر کی فائل `firestore.rules` کا پورا متن کاپی کر کے خانے میں چسپاں کریں (پرانے رولز مٹا دیں)۔
+3. **Publish** دبائیں۔
 
 ان رولز سے:
 
-- پراپرٹی صرف اس ایک ایڈمن UID سے ڈالی، بدلائی یا مٹائی جا سکتی ہے
-- عام لاگ ان صارف صرف نئی بولی لگا سکتا ہے (رقم + اپنی تبادلے والی پراپرٹی کی تفصیل)
-- کوئی بھی بولی بدل یا مٹا نہیں سکتا
-- عوامی صفحے پر ایڈمن کا بٹن نہیں ہے۔ ایڈمن کا خفیہ لنک اور پاس ورڈ صرف `ADMIN-SECRET.txt` فائل میں ہیں، اسے کسی کے ساتھ شیئر نہ کریں۔ لائیو سائٹ کی اصلی سکیورٹی یہ Firebase رولز ہیں
+- ایڈمن صرف وہ Google اکاؤنٹ ہے جس کا verified ای میل `teamworkcomplex@gmail.com` ہو
+- پراپرٹی، تصویریں اور نیلامی بند کرنا صرف ایڈمن کر سکتا ہے
+- لاگ ان صارف صرف اپنی بولی لگا سکتا ہے (رقم + تبادلے والی پراپرٹی)، اور بولی موجودہ اعلیٰ بولی + increment سے کم نہیں ہو سکتی
+- کوئی بولی بدل یا مٹا نہیں سکتا
+- `bidPrivate` (پورا نام اور فون) صرف ایڈمن پڑھ سکتا ہے
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn()
-        && request.auth.uid == 'PASTE_YOUR_ADMIN_UID_HERE';
-    }
-
-    match /properties/{id} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /bids/{id} {
-      allow read: if true;
-      allow create: if isSignedIn()
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && request.resource.data.propertyId is string;
-      allow update, delete: if false;
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
-```
+رولز Publish کیے بغیر ایپ خالی رہے گی یا "database is not ready" کا پیغام دکھا سکتی ہے۔
 
 ---
 
-## 5. Config ایپ میں چسپاں کریں
+## 4. ایڈمن پینل کیسے کھلے گا
 
-1. Firebase میں ⚙️ **Project settings → Your apps → Web** (`</>`) سے ایک ویب ایپ رجسٹر کریں۔
-2. جو `firebaseConfig` ملے، اسے `index.html` میں `FIREBASE CONFIG PLACEHOLDER` والی جگہ پر پیسٹ کریں۔
-3. اسی فائل میں `USE_FIREBASE` کو `true` کر دیں، `ADMIN_UID` میں اپنا Firebase UID لکھیں، اور پھر Firebase والے ڈیٹا فنکشنز (Firestore + Phone Auth) جوڑیں۔ فی الحال ایپ لوکل ڈیمو پر چلتی ہے۔ ایڈمن فہرست میں کئی تصویریں اور YouTube لنک (watch، youtu.be، Shorts، embed) ڈال سکتا ہے؛ دوسرے لوگ صرف بولی اور اپنی تبادلے والی پراپرٹی کی تفصیل دے سکتے ہیں۔
+1. لائیو ایپ کھولیں، **Account** دبائیں، اور **Continue with Google** سے `teamworkcomplex@gmail.com` سے سائن اِن کریں۔
+2. پھر `ADMIN-SECRET.txt` میں دیا گیا خفیہ لنک کھولیں۔
+3. اگر کوئی اور یہی لنک کھولے، یا آپ دوسرے اکاؤنٹ سے سائن اِن ہوں، تو صرف عوامی ہوم پیج نظر آئے گا۔ پرانا مقامی پاس ورڈ اب استعمال نہیں ہوتا۔
 
----
-
-## 6. GitHub Pages پر اپ لوڈ کریں
-
-1. [https://github.com](https://github.com) پر `teamworkcomplex-sudo` سے لاگ ان کریں۔
-2. **New repository** بنائیں، نام رکھیں: `propertyauction`، اسے **Public** رکھیں۔
-3. `index.html` (اور چاہیں تو یہ گائیڈ) اس ریپو میں اپ لوڈ کریں۔ فائل ریپو کے روٹ (سب سے اوپر) پر ہونی چاہیے۔
-4. **Settings → Pages** کھولیں، **Deploy from a branch** منتخب کریں، برانچ `main`، فولڈر `/ (root)`، پھر **Save** کریں۔
-5. چند منٹ بعد ایپ اس لنک پر کھلے گی:
-
-**https://teamworkcomplex-sudo.github.io/propertyauction**
-
-لوگ یہی لنک موبائل پر کھول کر بولی دے سکیں گے۔
+اصل حفاظت Firebase Auth اور اوپر Publish کیے گئے رولز ہیں۔ خفیہ لنک صرف پینل چھپانے کے لیے ہے۔
 
 ---
 
-## 7. مفت پلان کی حد
+## 5. پراپرٹی اور بولیاں
 
-Firebase Spark (مفت) پلان پر روزانہ پڑھائی اور لکھائی کی حد ہوتی ہے۔ چھوٹے ہفتہ وار ایونٹ کے لیے عام طور پر کافی ہے۔ اگر ایک ساتھ بہت سے لوگ بولی دیں تو حد پوری ہو سکتی ہے — Console میں **Usage** دیکھتے رہیں۔ فون Auth کے اصلی SMS بعد میں الگ سے چارج ہو سکتے ہیں۔ GitHub Pages چھوٹی سٹیٹک ویب ایپ کے لیے مفت ہے۔
+- پراپرٹی، تصویریں (زیادہ سے زیادہ 4، دبائی ہوئی JPEG) اور YouTube ویڈیو صرف آپ ایڈمن پینل سے ڈالیں گے۔
+- تصویریں Firebase Storage پر نہیں جاتیں، اس لیے Storage کا ادا شدہ پلان درکار نہیں۔
+- عام صارف بولی کے ساتھ اپنی تبادلے والی پراپرٹی کی تفصیل لکھتے ہیں۔
+- سب کے فون پر ایک ہی لائیو ڈیٹا نظر آئے گا، پہلے کی طرح صرف ایک براؤزر میں نہیں رہے گا۔
 
 ---
 
-## 8. بعد میں Play Store یا APK (اختیاری)
+## 6. لائیو لنک
 
-- **APK / براہِ راست انسٹال:** اس ویب ایپ کو بعد میں Capacitor یا Trusted Web Activity سے APK بنا کر WhatsApp یا اپنی ویب سائٹ سے دیا جا سکتا ہے — اس پر Google کی فیس نہیں۔
-- **Play Store:** Google Play Console اکاؤنٹ کی **ایک بار کی فیس 25 ڈالر** ہے۔ پھر ایپ پبلش کی جا سکتی ہے۔ نئے ذاتی اکاؤنٹ پر پہلے تھوڑی بند ٹیسٹنگ درکار ہوتی ہے۔
+ایپ اس وقت یہاں لگی ہوئی ہے (جب نیا کوڈ اپ ڈیٹ ہو جائے):
 
-آن لائن کرنے سے پہلے Firebase رولز ضرور چیک کریں۔ اس پیش نظارہ میں ایڈمن کا خفیہ لنک اور پاس ورڈ `ADMIN-SECRET.txt` میں ہیں — یہ صرف سامنے والے صفحے کی حفاظت ہے، لائیو سائٹ پر اصلی سکیورٹی Firebase Auth اور رولز ہیں۔ اس فائل کو پبلک ریپو میں نہ ڈالیں۔
+https://teamworkcomplex-sudo.github.io/propertyexchange/auction/
+
+`#/property/...` والے لنک اسی ایپ میں کھلتے ہیں۔ صفحے کا عنوان اس پراپرٹی کے مطابق بدل جاتا ہے۔ Google یا WhatsApp ہیش لنک (`#/...`) کا الگ پریویو عموماً نہیں بناتے۔
+
+---
+
+## 7. چیک لسٹ
+
+- [ ] Firestore Database بن گیا (production)
+- [ ] Google sign-in Enable ہے
+- [ ] Authorized domain: `teamworkcomplex-sudo.github.io`
+- [ ] `firestore.rules` چسپاں کر کے **Publish** ہو گئے
+- [ ] لائیو ایپ ریفریش کی، **No auctions yet** یا آپ کی پراپرٹیز نظر آئیں
+- [ ] Account سے Google سائن اِن چلتا ہے
+- [ ] `ADMIN-SECRET.txt` نجی رکھی، ریپو میں اپ لوڈ نہیں کی
