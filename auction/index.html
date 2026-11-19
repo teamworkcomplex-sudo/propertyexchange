@@ -4,11 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b2545" />
-  <meta name="description" id="meta-desc" content="Team Work Complex Pvt Ltd — Property Exchange weekly auction (boli). Verified listings and live bidding." />
-  <meta property="og:title" id="og-title" content="Property Auction | Team Work Complex Pvt Ltd" />
-  <meta property="og:description" id="og-desc" content="Exchange and bid on verified properties with Team Work Complex Pvt Ltd." />
+  <title>Property Exchange Auctions in Pakistan | Team Work Complex Pvt Ltd</title>
+  <meta name="description" id="meta-desc" content="Weekly property exchange auctions (boli) across Pakistan by Team Work Complex Pvt Ltd. See listings, place a bid, and offer a property in exchange." />
+  <link rel="canonical" href="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="favicon.png" />
+  <meta property="og:site_name" content="Team Work Complex Pvt Ltd" />
   <meta property="og:type" content="website" />
-  <title>Property Auction | Team Work Complex Pvt Ltd</title>
+  <meta property="og:locale" content="en_PK" />
+  <meta property="og:url" content="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/" />
+  <meta property="og:title" id="og-title" content="Property Exchange Auctions in Pakistan | Team Work Complex Pvt Ltd" />
+  <meta property="og:description" id="og-desc" content="Weekly property exchange auctions (boli) across Pakistan by Team Work Complex Pvt Ltd. See listings, place a bid, and offer a property in exchange." />
+  <meta property="og:image" content="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/og-default.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Team Work Complex Pvt Ltd property exchange auctions" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" id="tw-title" content="Property Exchange Auctions in Pakistan | Team Work Complex Pvt Ltd" />
+  <meta name="twitter:description" id="tw-desc" content="Weekly property exchange auctions (boli) across Pakistan by Team Work Complex Pvt Ltd. See listings, place a bid, and offer a property in exchange." />
+  <meta name="twitter:image" content="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/og-default.jpg" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Organization","name":"Team Work Complex Pvt Ltd","url":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/","logo":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/favicon.png","telephone":"+923458514492","areaServed":"PK","description":"Weekly property exchange auctions (boli) across Pakistan."}
+  </script>
 <style>
     :root {
       --navy: #0b2545; --navy-mid: #14325a; --navy-deep: #07182c;
@@ -245,8 +262,8 @@
     maxPhotoBytes: 150000
   };
   const PROPERTY_TYPES = ["House","Plot","Commercial Plot","Shop","Apartment","Farm House","Other"];
-  const DEFAULT_TITLE = "Property Auction | Team Work Complex Pvt Ltd";
-  const DEFAULT_DESC = "Team Work Complex Pvt Ltd — Property Exchange weekly auction (boli). Verified listings and live bidding.";
+  const DEFAULT_TITLE = "Property Exchange Auctions in Pakistan | Team Work Complex Pvt Ltd";
+  const DEFAULT_DESC = "Weekly property exchange auctions (boli) across Pakistan by Team Work Complex Pvt Ltd. See listings, place a bid, and offer a property in exchange.";
 
   /* THIS IS STILL FRONT-END ROUTE HIDING for the admin panel entry.
      Real security is Firebase Auth (Google, verified email === ADMIN_EMAIL)
@@ -437,6 +454,17 @@
     if (ogt) ogt.setAttribute("content", t);
     const ogd = document.getElementById("og-desc");
     if (ogd) ogd.setAttribute("content", d);
+    const twt = document.getElementById("tw-title");
+    if (twt) twt.setAttribute("content", t);
+    const twd = document.getElementById("tw-desc");
+    if (twd) twd.setAttribute("content", d);
+  }
+  function propertyShareUrl(id) {
+    const url = new URL(location.href);
+    let path = url.pathname.replace(/index\.html$/i, "");
+    path = path.replace(/\/p\/[^/]+\/?$/i, "/");
+    if (!path.endsWith("/")) path += "/";
+    return url.origin + path + "p/" + encodeURIComponent(id) + "/";
   }
 
   const App = {
@@ -924,7 +952,7 @@
       '<div class="kv"><span>Current highest</span><b data-testid="highest">'+formatPKR(high)+"</b></div>"+
       '<div class="kv"><span>Min. increment</span><b>'+formatPKR(p.increment)+"</b></div></div>"+
       (p.exchangeWanted ? '<div class="wanted"><strong>Exchange wanted:</strong> '+escapeHtml(p.exchangeWanted)+"</div>" : "")+
-      '<div class="btn-row" style="margin-top:12px"><button type="button" class="btn sm ghost" data-copy-link="1">Copy link</button></div>'+
+      '<div class="btn-row" style="margin-top:12px"><button type="button" class="btn sm ghost" data-copy-link="'+encodeURIComponent(p.id)+'">Copy link</button></div>'+
       "</div></div>"+video+bidBox+
       '<h3 class="section-h">Bid history</h3><div class="card"><div class="card-body">'+hist+"</div></div>"+
       '<p class="footer-note">Owner name, CNIC and documents are not shown on this public auction app.</p>';
@@ -1163,8 +1191,11 @@
     if (signout) { await signOutUser(); toast("Signed out."); render({ force: true }); return; }
     const copy = e.target.closest("[data-copy-link]");
     if (copy) {
-      try { await navigator.clipboard.writeText(location.href); toast("Link copied."); }
-      catch (err) { toast(location.href); }
+      const raw = copy.getAttribute("data-copy-link") || "";
+      const id = raw && raw !== "1" ? decodeURIComponent(raw) : "";
+      const share = id ? propertyShareUrl(id) : location.href;
+      try { await navigator.clipboard.writeText(share); toast("Link copied."); }
+      catch (err) { toast(share); }
       return;
     }
     const del = e.target.closest("[data-delete]");
