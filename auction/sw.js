@@ -2,7 +2,7 @@
    Scope is /propertyexchange/auction/ so a later Play Store TWA can use the same start URL.
    Same-origin HTML is network-first. Same-origin static files are cache-first.
    Firebase, Firestore, and Google auth requests are not intercepted or cached. */
-const CACHE = "twc-auction-v2";
+const CACHE = "twc-auction-v3";
 const SCOPE_PATH = "/propertyexchange/auction/";
 const OFFLINE_URL = SCOPE_PATH + "offline.html";
 
@@ -46,7 +46,11 @@ function isBlockedApi(url) {
     host.endsWith(".web.app") ||
     host === "www.gstatic.com" ||
     host.endsWith(".gstatic.com") ||
-    host.endsWith(".google.com")
+    host.endsWith(".google.com") ||
+    host === "www.googletagmanager.com" ||
+    host.endsWith(".googletagmanager.com") ||
+    host === "www.google-analytics.com" ||
+    host.endsWith(".google-analytics.com")
   );
 }
 
