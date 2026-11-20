@@ -198,6 +198,13 @@ function pageHtml(prop, image) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0b2545" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DBH5L4NM1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-2DBH5L4NM1');
+  </script>
   <link rel="manifest" href="../../manifest.webmanifest" />
   <link rel="apple-touch-icon" href="../../icon-192.png" sizes="192x192" />
   <title>${escapeHtml(fullTitle)}</title>

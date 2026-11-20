@@ -251,6 +251,7 @@
     updateDoc, deleteDoc, onSnapshot, serverTimestamp, runTransaction,
     writeBatch, query, orderBy, Timestamp
   } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { getAnalytics, isSupported, logEvent } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAWKCuykwlT3Y4SKTxpWLnD9DNKSd8sADY",
@@ -266,6 +267,39 @@
   const auth = getAuth(app);
   const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
   const googleProvider = new GoogleAuthProvider();
+
+  let analytics = null;
+  const analyticsQueue = [];
+  function track(name, params) {
+    try {
+      if (!analytics) {
+        if (analyticsQueue.length < 20) analyticsQueue.push([name, params || {}]);
+        return;
+      }
+      logEvent(analytics, name, params || {});
+    } catch (e) {}
+  }
+  try {
+    isSupported().then((ok) => {
+      if (!ok) { analyticsQueue.length = 0; return; }
+      try {
+        analytics = getAnalytics(app);
+        analyticsQueue.splice(0).forEach(([name, params]) => {
+          try { logEvent(analytics, name, params); } catch (e) {}
+        });
+      } catch (e) { analytics = null; analyticsQueue.length = 0; }
+    }).catch(() => { analyticsQueue.length = 0; });
+  } catch (e) {}
+  let lastViewedPropertyId = null;
+  function notePropertyView(id, title) {
+    const itemId = String(id || "");
+    if (!itemId || lastViewedPropertyId === itemId) return;
+    lastViewedPropertyId = itemId;
+    const params = { item_id: itemId };
+    const name = String(title || "").trim();
+    if (name) params.item_name = name.slice(0, 100);
+    track("view_item", params);
+  }
 
   const ADMIN_EMAIL = "teamworkcomplex@gmail.com";
 
@@ -1140,6 +1174,7 @@
     push(onSnapshot(doc(db, "properties", id), (snap) => {
       App.detail.prop = snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
       App.detail.tried = true;
+      if (route().name === "property" && snap.exists()) notePropertyView(snap.id, (snap.data() || {}).title);
       render();
     }, () => { App.detail.prop = null; App.detail.tried = true; render(); }));
     push(onSnapshot(collection(db, "properties", id, "photos"), (snap) => {
@@ -1181,6 +1216,7 @@
   function onHash() {
     App.bidFlash = null;
     const r = route();
+    if (r.name !== "property") lastViewedPropertyId = null;
     if (r.name !== "admin-form") { App.photos = []; App.photosEditId = null; }
     ensureRouteData();
     render({ force: true });
@@ -1282,6 +1318,8 @@
             amount: fd.get("amount"),
             offer: { type: fd.get("offType"), city: fd.get("offCity"), size: fd.get("offSize"), desc: fd.get("offDesc"), estValue: fd.get("offVal") }
           });
+          track("place_bid", { item_id: String(id || "") });
+          track("exchange_offer", { item_id: String(id || ""), item_category: String(fd.get("offType") || "").slice(0, 40) });
           App.bidFlash = { ok: "Bid placed. You are the current highest bidder." };
           toast("Bid placed successfully.");
           render({ force: true });
