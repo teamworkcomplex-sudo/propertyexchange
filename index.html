@@ -25,8 +25,7 @@ Upload ONLY this file (index.html) to a GitHub repository, then enable
 Pages (Settings → Pages → Branch: main). No zip, no extra files needed.
 
 CONFIG is near the top of the script block:
-  ADMIN_USER / ADMIN_PASSWORD  — owner login (change the default!)
-  OWNER_EMAIL                  — teamworkcomplex@gmail.com (Web3Forms key was created with this email)
+  OWNER_EMAIL                  — owner Google account for admin (same allowlist as the auction)
   WEB3FORMS_ACCESS_KEY         — Web3Forms key
   DEFAULT_WHATSAPP             — fallback WhatsApp, country code, no +
 
@@ -39,10 +38,11 @@ sent by email — only the photo count. Demo photos are free-licensed
 Unsplash images; any image that fails to load falls back to an inline
 SVG illustration.
 
-Security note: this is a static site with no server. Login is a basic
-client-side check and can be inspected in the file. Visitor passwords are
-stored only as SHA-256 hashes (never plaintext). Passwords and hashes are
-NEVER sent in emails or saved in leads.
+Security note: this is a static site with no server. The owner signs in
+with Firebase Authentication (Google). Only a verified Google account on
+the owner allowlist can open admin tools. Visitor passwords are stored
+only as SHA-256 hashes (never plaintext). Passwords and hashes are NEVER
+sent in emails or saved in leads.
 
 Location: optional only, via "Use my property's location" / "Share my
 location" buttons. No automatic geolocation, none on login or signup.
@@ -113,6 +113,8 @@ img{max-width:100%;display:block}
 .btn-lg{padding:14px 26px;font-size:1rem;border-radius:12px}
 .btn-sm{padding:6px 12px;font-size:.84rem;border-radius:8px}
 .btn-block{width:100%}
+.owner-google{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.owner-google .notice{margin:0 0 10px}
 
 /* hero */
 .hero{position:relative;color:#fff;padding:72px 0 128px;overflow:hidden;
@@ -799,6 +801,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p500);bo
           <p class="error" id="signupError" role="alert"></p>
           <button type="submit" class="btn btn-solid btn-lg btn-block">Create account</button>
         </form>
+        <div class="owner-google">
+          <p class="notice">Site owner: sign in with the Google account used for the auction.</p>
+          <button type="button" class="btn btn-ghost btn-lg btn-block" id="ownerGoogleBtn">Continue with Google</button>
+          <p class="error" id="ownerGoogleError" role="alert"></p>
+        </div>
       </div>
     </div>
   </div>
@@ -855,8 +862,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p500);bo
 /* ===== CONFIG — change these before uploading ===== */
 const CONFIG = {
   siteName: "Property Exchange",
-  ADMIN_USER: "admin",
-  ADMIN_PASSWORD: "teamwork",
   /* Web3Forms کی کلید اسی ای میل سے بنائیں / Create the Web3Forms key at https://web3forms.com with this same email: teamworkcomplex@gmail.com */
   OWNER_EMAIL: "teamworkcomplex@gmail.com",
   /* Free key from https://web3forms.com — leave the placeholder to skip sending */
@@ -996,7 +1001,10 @@ function saveUsers(list){ save(KEYS.users, list); }
 function getSession(){ return load(KEYS.session, null); }
 function setSession(s){ if (s) save(KEYS.session, s); else localStorage.removeItem(KEYS.session); }
 function isLoggedIn(){ return !!getSession(); }
-function isAdmin(){ const s = getSession(); return !!(s && s.role === "admin"); }
+function isAdmin(){
+  const s = getSession();
+  return !!(ownerAuthReady && s && s.role === "admin" && s.provider === "google");
+}
 
 /* ===== email ===== */
 function isPlaceholderKey(key){
@@ -1996,6 +2004,122 @@ async function onLeadSubmit(e){
   $("btnLeadLocRemove").classList.add("hidden");
 }
 
+/* ===== owner auth (Firebase Google, same allowlist as the auction) ===== */
+const FIREBASE_APP_URL = "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+const FIREBASE_AUTH_URL = "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyAWKCuykwlT3Y4SKTxpWLnD9DNKSd8sADY",
+  authDomain: "property-auctions.firebaseapp.com",
+  projectId: "property-auctions",
+  storageBucket: "property-auctions.firebasestorage.app",
+  messagingSenderId: "841919042709",
+  appId: "1:841919042709:web:7b4472e9beade09551b79c",
+  measurementId: "G-2DBH5L4NM1"
+};
+let firebaseAuth = null;
+let googleProvider = null;
+let authFns = null;
+let ownerAuthReady = false;
+let ownerSignInAttempt = false;
+
+function adminAllowlist(){
+  return [CONFIG.OWNER_EMAIL].map(e => String(e || "").trim().toLowerCase()).filter(Boolean);
+}
+function isAllowlistedAdmin(user){
+  if (!user || !user.email || user.emailVerified !== true) return false;
+  return adminAllowlist().includes(String(user.email).toLowerCase());
+}
+async function ensureFirebaseAuth(){
+  if (firebaseAuth && authFns) return firebaseAuth;
+  const appMod = await import(FIREBASE_APP_URL);
+  const authMod = await import(FIREBASE_AUTH_URL);
+  const app = appMod.initializeApp(firebaseConfig);
+  firebaseAuth = authMod.getAuth(app);
+  googleProvider = new authMod.GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: "select_account" });
+  authFns = authMod;
+  return firebaseAuth;
+}
+function grantOwnerSession(user){
+  setSession({
+    role: "admin",
+    provider: "google",
+    userId: user.uid,
+    name: user.displayName || "Owner",
+    email: user.email,
+    phone: ""
+  });
+}
+function clearAdminSession(){
+  const s = getSession();
+  if (s && s.role === "admin") setSession(null);
+}
+async function bootOwnerAuth(){
+  try {
+    await ensureFirebaseAuth();
+    try { await authFns.getRedirectResult(firebaseAuth); } catch (e) {}
+    authFns.onAuthStateChanged(firebaseAuth, async (user) => {
+      if (isAllowlistedAdmin(user)) {
+        ownerSignInAttempt = false;
+        grantOwnerSession(user);
+        ownerAuthReady = true;
+        updateAuthUi();
+        if (currentPage() === "login") {
+          toast("Logged in as owner");
+          location.hash = afterLoginHash || "home";
+        } else if (currentPage() === "leads") {
+          route();
+        }
+        return;
+      }
+      if (user && ownerSignInAttempt) {
+        ownerSignInAttempt = false;
+        const el = $("ownerGoogleError");
+        if (el) el.textContent = "This Google account cannot open the owner tools.";
+        try { await authFns.signOut(firebaseAuth); } catch (e) {}
+      }
+      clearAdminSession();
+      ownerAuthReady = true;
+      updateAuthUi();
+      if (currentPage() === "leads") route();
+    });
+  } catch (e) {
+    clearAdminSession();
+    ownerAuthReady = true;
+    updateAuthUi();
+    if (currentPage() === "leads") route();
+  }
+}
+async function startOwnerGoogleSignIn(){
+  const errEl = $("ownerGoogleError");
+  if (errEl) errEl.textContent = "";
+  const btn = $("ownerGoogleBtn");
+  if (btn) btn.disabled = true;
+  ownerSignInAttempt = true;
+  try {
+    await ensureFirebaseAuth();
+    try {
+      await authFns.signInWithPopup(firebaseAuth, googleProvider);
+    } catch (err) {
+      const code = (err && err.code) || "";
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        ownerSignInAttempt = false;
+        return;
+      }
+      if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+        await authFns.signInWithRedirect(firebaseAuth, googleProvider);
+        return;
+      }
+      throw err;
+    }
+  } catch (e) {
+    ownerSignInAttempt = false;
+    if (errEl) errEl.textContent = "Google sign-in could not start. Please try again.";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 /* ===== auth ===== */
 async function notifyAuth(eventType, user){
   const label = eventType === "signup" ? "New sign-up" : "Login";
@@ -2023,7 +2147,7 @@ async function onSignup(e){
   const pass = $("suPass").value;
   if (!name || !email || !pass) { $("signupError").textContent = "Name, email and password are required."; return; }
   if (pass.length < 6) { $("signupError").textContent = "Password must be at least 6 characters."; return; }
-  if (email === CONFIG.ADMIN_USER.toLowerCase()) { $("signupError").textContent = "This email isn't available."; return; }
+  if (adminAllowlist().includes(email)) { $("signupError").textContent = "The owner account uses Google sign-in."; return; }
   try {
     const passwordHash = await sha256Hex(pass);
     const users = getUsers();
@@ -2053,16 +2177,6 @@ async function onLogin(e){
   const pass = $("loginPass").value;
   if (!user || !pass) { $("loginError").textContent = "Please enter your username/email and password."; return; }
 
-  if (user.toLowerCase() === CONFIG.ADMIN_USER.toLowerCase() && pass === CONFIG.ADMIN_PASSWORD) {
-    setSession({ role:"admin", userId:"admin", name:"Admin", email: CONFIG.OWNER_EMAIL, username: CONFIG.ADMIN_USER });
-    $("loginPass").value = "";
-    await notifyAuth("login", { name:"Admin", email: CONFIG.OWNER_EMAIL, username: CONFIG.ADMIN_USER, phone:"" });
-    toast("Logged in as admin");
-    updateAuthUi();
-    location.hash = afterLoginHash || "home";
-    return;
-  }
-
   try {
     const hash = await sha256Hex(pass);
     const found = getUsers().find(u => u.email === user.toLowerCase());
@@ -2086,8 +2200,13 @@ async function onLogin(e){
 }
 
 function logout(){
+  const wasAdmin = isAdmin();
   setSession(null);
+  if (wasAdmin) ownerAuthReady = false;
   updateAuthUi();
+  if (wasAdmin && firebaseAuth && authFns) {
+    authFns.signOut(firebaseAuth).catch(() => {});
+  }
   toast("Logged out");
   location.hash = "home";
 }
@@ -2117,6 +2236,7 @@ function route(){
     location.hash = "login";
     return;
   }
+  if (page === "leads" && !ownerAuthReady) return;
   if (page === "leads" && !isAdmin()) {
     toast("Only the admin can view leads.");
     location.hash = isLoggedIn() ? "home" : "login";
@@ -2245,6 +2365,8 @@ function bind(){
     $("btnAddLocRemove").classList.add("hidden");
   });
   $("loginForm").addEventListener("submit", onLogin);
+  $("ownerGoogleBtn").addEventListener("click", startOwnerGoogleSignIn);
+  bootOwnerAuth();
   $("signupForm").addEventListener("submit", onSignup);
   $("navLogout").addEventListener("click", logout);
   $("tabLogin").addEventListener("click", () => {
