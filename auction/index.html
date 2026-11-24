@@ -26,8 +26,11 @@
   <meta name="twitter:description" id="tw-desc" content="Weekly property exchange auctions (boli) across Pakistan by Team Work Complex Pvt Ltd. See listings, place a bid, and offer a property in exchange." />
   <meta name="twitter:image" content="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/og-default.jpg" />
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"Organization","name":"Team Work Complex Pvt Ltd","url":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/","logo":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/favicon.png","telephone":"+923458514492","areaServed":"PK","description":"Weekly property exchange auctions (boli) across Pakistan.","sameAs":["https://www.youtube.com/@teamworkcomplexpvtltd"]}
+  {"@context":"https://schema.org","@type":"Organization","name":"Team Work Complex Pvt Ltd","url":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/","logo":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/icon-512.png","telephone":"+923458514492","areaServed":"PK","description":"Weekly property exchange auctions (boli) across Pakistan.","sameAs":["https://www.youtube.com/@teamworkcomplexpvtltd"]}
   </script>
+  <!-- homepage-ld:start -->
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"Team Work Complex Property Exchange","url":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/","publisher":{"@type":"Organization","name":"Team Work Complex Pvt Ltd","logo":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/icon-512.png"}},{"@type":"ItemList","name":"Live property auctions in Pakistan","itemListElement":[{"@type":"ListItem","position":1,"name":"1 Bedroom Apartment for Exchange in Hill View","url":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/4j4MXAqW20prTsIHUqdp/"},{"@type":"ListItem","position":2,"name":"7 Marla plot for Exchange in Hill view housing scheme","url":"https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/nIgPNIEvhKAUzUzsTrXk/"}]}]}</script>
+<!-- homepage-ld:end -->
 <style>
     :root {
       --navy: #0b2545; --navy-mid: #14325a; --navy-deep: #07182c;
@@ -231,7 +234,18 @@
         <span>Our YouTube Channel<small lang="ur">ہمارا یوٹیوب چینل</small></span>
       </a>
     </div>
-    <main class="main" id="main"></main>
+    <main class="main" id="main"><!-- static-auctions:start -->
+<section class="static-auctions" aria-label="Live auctions"><h2>Live property auctions in Pakistan</h2>
+<article class="static-card"><a href="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/4j4MXAqW20prTsIHUqdp/"><img src="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/4j4MXAqW20prTsIHUqdp/cover.jpg" alt="1 Bedroom Apartment for Exchange in Hill View"><h2>1 Bedroom Apartment for Exchange in Hill View</h2><p>Taxila · 750 sq ft · Apartment</p></a></article>
+<article class="static-card"><a href="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/nIgPNIEvhKAUzUzsTrXk/"><img src="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/nIgPNIEvhKAUzUzsTrXk/cover.jpg" alt="7 Marla plot for Exchange in Hill view housing scheme"><h2>7 Marla plot for Exchange in Hill view housing scheme</h2><p>Islamabad · 7.2 Marla · House</p></a></article>
+</section>
+<!-- static-auctions:end --></main>
+    <noscript><!-- static-auctions-noscript:start -->
+<section class="static-auctions" aria-label="Live auctions"><h2>Live property auctions in Pakistan</h2>
+<article class="static-card"><a href="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/4j4MXAqW20prTsIHUqdp/"><img src="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/4j4MXAqW20prTsIHUqdp/cover.jpg" alt="1 Bedroom Apartment for Exchange in Hill View"><h2>1 Bedroom Apartment for Exchange in Hill View</h2><p>Taxila · 750 sq ft · Apartment</p></a></article>
+<article class="static-card"><a href="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/nIgPNIEvhKAUzUzsTrXk/"><img src="https://teamworkcomplex-sudo.github.io/propertyexchange/auction/p/nIgPNIEvhKAUzUzsTrXk/cover.jpg" alt="7 Marla plot for Exchange in Hill view housing scheme"><h2>7 Marla plot for Exchange in Hill view housing scheme</h2><p>Islamabad · 7.2 Marla · House</p></a></article>
+</section>
+<!-- static-auctions-noscript:end --></noscript>
     <nav class="nav" aria-label="Main">
       <button type="button" data-nav="home" data-testid="nav-home"><span class="ico">⌂</span>Auctions</button>
       <button type="button" data-nav="login" data-testid="nav-account"><span class="ico">👤</span>Account</button>
@@ -843,7 +857,7 @@
   function coverMedia(prop) {
     const photos = (prop._photos || App.detail.photos || []).filter(p => String(p).indexOf("data:image/") === 0);
     const cover = photos[0] || App.covers[prop.id] || null;
-    return cover ? '<img src="'+cover+'" alt="">' : photoArt(prop.art || "house", prop.id);
+    return cover ? '<img src="'+cover+'" alt="'+escapeHtml(prop.title || "Property")+'">' : photoArt(prop.art || "house", prop.id);
   }
   function photoHTML(prop) {
     const end = remainingParts(prop.endsAt);
@@ -855,7 +869,7 @@
   function galleryHTML(prop, photos) {
     const list = (photos || []).filter(p => String(p).indexOf("data:image/") === 0);
     const slides = list.length
-      ? list.map((src, i) => '<div class="gallery-slide" data-i="'+i+'"><img src="'+src+'" alt="Photo '+(i+1)+'"></div>')
+      ? list.map((src, i) => '<div class="gallery-slide" data-i="'+i+'"><img src="'+src+'" alt="'+escapeHtml(prop.title || "Property")+'"></div>')
       : ['<div class="gallery-slide">'+photoArt(prop.art || "house", prop.id)+"</div>"];
     const end = remainingParts(prop.endsAt);
     const videoBadge = youtubeIdOf(prop) ? '<span class="badge video">Video</span>' : "";
