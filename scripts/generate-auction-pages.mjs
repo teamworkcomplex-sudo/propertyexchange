@@ -122,6 +122,14 @@ async function jpeg(input, width) {
   return { buf, width: info.width || target, height: info.height || 0 };
 }
 
+async function ogCrop(input) {
+  return sharp(input, { failOn: "none" })
+    .rotate()
+    .resize(1200, 630, { fit: "cover", position: "centre" })
+    .jpeg({ quality: 82, mozjpeg: true })
+    .toBuffer();
+}
+
 function brandSvg(w, h, subtitle) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
@@ -137,49 +145,121 @@ function escapeXml(s) {
   return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
 
-function descriptionFor(prop) {
-  const place = [prop.size, prop.type].filter(Boolean).join(" ");
-  const where = [place, prop.city].filter(Boolean).join(" in ");
-  const bits = [];
-  if (prop.title) bits.push(String(prop.title).trim().replace(/\.+$/, "") + ".");
-  if (where) bits.push(where + ".");
-  if (prop.exchangeWanted) bits.push("Exchange wanted: " + String(prop.exchangeWanted).trim().replace(/\.+$/, "") + ".");
-  if (prop.minBid) bits.push("Minimum bid " + formatPKR(prop.minBid) + ".");
-  bits.push("Property exchange auction by Team Work Complex Pvt Ltd in Pakistan.");
-  let text = bits.join(" ").replace(/\s+/g, " ").trim();
-  if (text.length > 220) text = text.slice(0, 217).replace(/\s+\S*$/, "") + "...";
-  return text;
+function cleanLabel(s) {
+  return String(s || "")
+    .replace(/(\d+)\s*bed\s*rooms?\b/gi, (_, n) => n + " Bedroom")
+    .replace(/\bbed\s*rooms?\b/gi, "Bedroom")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function fitText(text, min, max, pads) {
+  let t = cleanLabel(text);
+  if (t.length > max) {
+    let cut = t.slice(0, max);
+    const sp = cut.lastIndexOf(" ");
+    if (sp >= Math.min(min, max - 8)) cut = cut.slice(0, sp);
+    t = cut.replace(/[\s,.:;-]+$/g, "");
+  }
+  for (const pad of pads || []) {
+    if (t.length >= min) break;
+    if (t.length + pad.length <= max) t += pad;
+  }
+  if (t.length > max) t = t.slice(0, max).replace(/[\s,.:;-]+$/g, "");
+  return t;
+}
+
+function placeBits(prop) {
+  const cleaned = cleanLabel(prop.title);
+  const bed = cleaned.match(/\d+\s+Bedroom/);
+  const type = cleanLabel(prop.type || "Property");
+  const size = cleanLabel(prop.size || "");
+  const city = cleanLabel(prop.city);
+  const what = bed ? bed[0] + " " + type : [size, type].filter(Boolean).join(" ");
+  return { cleaned, city, what: what || "Property" };
+}
+
+function seoTitle(prop) {
+  const { city, what } = placeBits(prop);
+  const base = city
+    ? what + " exchange auction in " + city + ", Pakistan"
+    : what + " property exchange auction in Pakistan";
+  return fitText(base, 50, 60, [" Pakistan"]);
+}
+
+function seoDescription(prop) {
+  const { city, what } = placeBits(prop);
+  const where = city ? city + ", Pakistan" : "Pakistan";
+  const base = "Property exchange auction for this " + what.toLowerCase() + " in " + where + ". Bid on the property auction or offer another property in exchange.";
+  return fitText(base, 150, 160, [" Bid now."]);
 }
 
 function jsonLd(data) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
-function pageHtml(prop, image) {
+function isLive(prop) {
+  const label = statusLabel(prop);
+  return label === "Live" || label === "Ending soon";
+}
+
+function pageUrlFor(id) {
+  return AUCTION + "p/" + encodeURIComponent(id) + "/";
+}
+
+function pageHtml(prop, image, others) {
   const id = prop.id;
-  const pageUrl = AUCTION + "p/" + encodeURIComponent(id) + "/";
-  const appUrl = "../../#/property/" + encodeURIComponent(id);
-  const title = prop.title || "Property auction";
-  const fullTitle = title + " | Team Work Complex Pvt Ltd";
-  const desc = descriptionFor(prop);
-  const imageUrl = image ? pageUrl + "cover.jpg" : AUCTION + "og-default.jpg";
-  const imageW = image ? image.width : 1200;
-  const imageH = image ? image.height : 630;
+  const pageUrl = pageUrlFor(id);
+  const appUrl = AUCTION + "#/property/" + encodeURIComponent(id);
+  const heading = cleanLabel(prop.title) || "Property auction";
+  const fullTitle = seoTitle(prop);
+  const desc = seoDescription(prop);
+  const imageUrl = image ? pageUrl + "og.jpg" : AUCTION + "og-default.jpg";
+  const imageW = 1200;
+  const imageH = 630;
   const when = formatDate(prop.endsAt);
   const video = youtubeUrl(prop.youtubeUrl);
   const status = statusLabel(prop);
+  const city = cleanLabel(prop.city);
+  const endDay = String(prop.endsAt || "").slice(0, 10);
+  const price = String(Math.round(Number(prop.minBid) || 0));
+  const availability = (status === "Ended" || status === "Closed")
+    ? "https://schema.org/SoldOut"
+    : "https://schema.org/InStock";
+  const homeUrl = SITE + "/";
   const ld = {
     "@context": "https://schema.org",
-    "@type": "RealEstateListing",
-    name: title,
-    description: desc,
-    url: pageUrl,
-    image: imageUrl,
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: prop.city || "Pakistan",
-      addressCountry: "PK"
-    }
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: homeUrl },
+          { "@type": "ListItem", position: 2, name: "Auctions", item: AUCTION },
+          { "@type": "ListItem", position: 3, name: heading, item: pageUrl }
+        ]
+      },
+      {
+        "@type": "RealEstateListing",
+        name: heading,
+        description: desc,
+        url: pageUrl,
+        image: image ? [imageUrl, pageUrl + "cover.jpg"] : imageUrl,
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: city || "Pakistan",
+          addressCountry: "PK"
+        },
+        validThrough: prop.endsAt || undefined,
+        offers: {
+          "@type": "Offer",
+          price: price,
+          priceCurrency: "PKR",
+          availability: availability,
+          priceValidUntil: endDay || undefined,
+          url: pageUrl
+        }
+      }
+    ]
   };
   const rows = [
     ["Status", status],
@@ -212,7 +292,7 @@ function pageHtml(prop, image) {
   <link rel="canonical" href="${escapeHtml(pageUrl)}" />
   <meta name="robots" content="index,follow" />
   <meta property="og:site_name" content="Team Work Complex Pvt Ltd" />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content="product" />
   <meta property="og:locale" content="en_PK" />
   <meta property="og:url" content="${escapeHtml(pageUrl)}" />
   <meta property="og:title" content="${escapeHtml(fullTitle)}" />
@@ -220,7 +300,7 @@ function pageHtml(prop, image) {
   <meta property="og:image" content="${escapeHtml(imageUrl)}" />
   <meta property="og:image:width" content="${imageW}" />
   <meta property="og:image:height" content="${imageH}" />
-  <meta property="og:image:alt" content="${escapeHtml(title)}" />
+  <meta property="og:image:alt" content="${escapeHtml(heading)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(fullTitle)}" />
   <meta name="twitter:description" content="${escapeHtml(desc)}" />
@@ -235,7 +315,11 @@ function pageHtml(prop, image) {
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 16px; overflow: hidden; }
     th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #e2e8ef; vertical-align: top; }
     th { width: 38%; color: #5c6b7a; font-weight: 600; }
-    a.btn { display: inline-block; margin-top: 18px; background: #f4c430; color: #0b2545; font-weight: 700; text-decoration: none; padding: 12px 16px; border-radius: 12px; }
+    a.btn { display: inline-block; margin: 18px 8px 0 0; background: #f4c430; color: #0b2545; font-weight: 700; text-decoration: none; padding: 12px 16px; border-radius: 12px; }
+    a.btn.ghost { background: #fff; border: 1px solid #c9a227; }
+    .crumbs { font-size: .92rem; color: #5c6b7a; margin: 0 0 12px; }
+    .crumbs a { color: #0b2545; font-weight: 700; text-decoration: none; }
+    .others a { color: #0b2545; font-weight: 700; }
     a.yt { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; color: #0b2545; font-weight: 700; text-decoration: none; }
     a.yt svg { width: 20px; height: 20px; flex: 0 0 20px; }
     a.yt small { display: block; font-weight: 600; color: #5c6b7a; font-size: .85rem; }
@@ -244,15 +328,19 @@ function pageHtml(prop, image) {
 </head>
 <body>
   <main>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="${escapeHtml(homeUrl)}">Home</a> › <a href="${escapeHtml(AUCTION)}">Auctions</a> › <span>Property</span></nav>
     <p class="meta">Team Work Complex Pvt Ltd · Property exchange auction · Pakistan</p>
-    <h1>${escapeHtml(title)}</h1>
-    <p class="meta">${escapeHtml([prop.city, prop.size, prop.type].filter(Boolean).join(" · "))}</p>
-    ${image ? `<p><img src="cover.jpg" alt="${escapeHtml(title)}" width="${imageW}" height="${imageH}"></p>` : ""}
+    <h1>${escapeHtml(heading)}</h1>
+    <p class="meta">${escapeHtml([city, cleanLabel(prop.size), cleanLabel(prop.type)].filter(Boolean).join(" · "))}</p>
+    ${image ? `<p><img src="cover.jpg" alt="${escapeHtml(heading)}" width="${image.width}" height="${image.height}"></p>` : ""}
     <table>
-      ${rows.map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join("\n      ")}
+      ${rows.map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(cleanLabel(v))}</td></tr>`).join("\n      ")}
     </table>
     ${video ? `<p><a href="${escapeHtml(video)}">Property video</a></p>` : ""}
-    <p><a class="btn" href="${escapeHtml(appUrl)}">Open this auction</a></p>
+    <p><a class="btn" href="${escapeHtml(pageUrl)}">View this property auction</a> <a class="btn ghost" href="${escapeHtml(appUrl)}">Open in the auction app</a></p>
+    <p><a href="${escapeHtml(AUCTION)}">Back to all auctions</a></p>
+    <h2>Other live auctions</h2>
+    ${others.length ? `<ul class="others">${others.map((item) => `<li><a href="${escapeHtml(pageUrlFor(item.id))}">${escapeHtml(cleanLabel(item.title) || "Property auction")}</a></li>`).join("")}</ul>` : `<p class="note">No other live auctions right now.</p>`}
     <p><a class="yt" href="https://www.youtube.com/@teamworkcomplexpvtltd" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#FF0000" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8z"/><path fill="#fff" d="M9.8 15.5v-7l6.2 3.5z"/></svg><span>Our YouTube Channel<small lang="ur">ہمارا یوٹیوب چینل</small></span></a></p>
     <p class="note">Bids are placed in the auction app. Owner names, CNIC numbers and documents are not shown.</p>
   </main>
@@ -302,6 +390,7 @@ async function main() {
       const buf = decodeDataUrl(row.dataUrl);
       if (!buf) continue;
       image = await jpeg(buf, 1200);
+      image.og = await ogCrop(buf);
       break;
     }
     properties.push({ prop, image });
@@ -327,19 +416,29 @@ async function main() {
   for (const name of await readdir(dir)) {
     if (!keep.has(name)) await rm(join(dir, name), { recursive: true, force: true });
   }
+  const live = properties.filter(({ prop }) => isLive(prop));
   for (const { prop, image } of properties) {
     const folder = join(dir, prop.id);
     await mkdir(folder, { recursive: true });
-    await writeFile(join(folder, "index.html"), pageHtml(prop, image));
-    if (image) await writeFile(join(folder, "cover.jpg"), image.buf);
-    else await rm(join(folder, "cover.jpg"), { force: true });
+    const others = live.filter((item) => item.prop.id !== prop.id).map((item) => item.prop);
+    await writeFile(join(folder, "index.html"), pageHtml(prop, image, others));
+    if (image) {
+      await writeFile(join(folder, "cover.jpg"), image.buf);
+      await writeFile(join(folder, "og.jpg"), image.og);
+    } else {
+      await rm(join(folder, "cover.jpg"), { force: true });
+      await rm(join(folder, "og.jpg"), { force: true });
+    }
   }
+  await updateHomepage(live.map((item) => item.prop));
 
+  const dates = properties.map(({ prop }) => (prop.updateTime || "").slice(0, 10)).filter(Boolean).sort();
+  const homeLast = dates.length ? dates[dates.length - 1] : new Date().toISOString().slice(0, 10);
   const urls = [
-    { loc: AUCTION, lastmod: "" },
+    { loc: AUCTION, lastmod: homeLast },
     ...properties.map(({ prop }) => ({
-      loc: AUCTION + "p/" + encodeURIComponent(prop.id) + "/",
-      lastmod: (prop.updateTime || "").slice(0, 10)
+      loc: pageUrlFor(prop.id),
+      lastmod: (prop.updateTime || "").slice(0, 10) || homeLast
     }))
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
@@ -348,6 +447,66 @@ async function main() {
   await writeFile(join(ROOT, "auction", "sitemap.xml"), xml);
   await writeRobots();
   console.log(`Wrote ${properties.length} property page(s).`);
+}
+
+function listingCards(props) {
+  if (!props.length) {
+    return `<section class="static-auctions"><h2>Live property auctions in Pakistan</h2><p>No live auctions are listed right now. <a href="${escapeHtml(AUCTION)}">See all auctions</a>.</p></section>`;
+  }
+  const cards = props.map((prop) => {
+    const href = pageUrlFor(prop.id);
+    const title = cleanLabel(prop.title) || seoTitle(prop);
+    const meta = [prop.city, prop.size, prop.type].filter(Boolean).map(cleanLabel).join(" · ");
+    return `<article class="static-card"><a href="${escapeHtml(href)}"><img src="${escapeHtml(href)}cover.jpg" alt="${escapeHtml(title)}"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(meta)}</p></a></article>`;
+  }).join("\n");
+  return `<section class="static-auctions" aria-label="Live auctions"><h2>Live property auctions in Pakistan</h2>\n${cards}\n</section>`;
+}
+
+function homepageGraph(props) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        name: "Team Work Complex Property Exchange",
+        url: AUCTION,
+        publisher: {
+          "@type": "Organization",
+          name: "Team Work Complex Pvt Ltd",
+          logo: AUCTION + "icon-512.png"
+        }
+      },
+      {
+        "@type": "ItemList",
+        name: "Live property auctions in Pakistan",
+        itemListElement: props.map((prop, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: cleanLabel(prop.title) || seoTitle(prop),
+          url: pageUrlFor(prop.id)
+        }))
+      }
+    ]
+  };
+}
+
+function replaceMarked(html, name, inner) {
+  const start = `<!-- ${name}:start -->`;
+  const end = `<!-- ${name}:end -->`;
+  const pattern = new RegExp(start + "[\\s\\S]*?" + end);
+  if (!pattern.test(html)) throw new Error("Missing homepage marker " + name);
+  return html.replace(pattern, start + "\n" + inner.trim() + "\n" + end);
+}
+
+async function updateHomepage(props) {
+  const path = join(ROOT, "auction", "index.html");
+  let html = await readFile(path, "utf8");
+  const cards = listingCards(props);
+  const data = `<script type="application/ld+json">${jsonLd(homepageGraph(props))}</script>`;
+  html = replaceMarked(html, "static-auctions", cards);
+  html = replaceMarked(html, "static-auctions-noscript", cards);
+  html = replaceMarked(html, "homepage-ld", data);
+  await writeFile(path, html);
 }
 
 function pngIco(png, size) {
